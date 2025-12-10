@@ -10,6 +10,7 @@ import { SettingsView } from "@/components/views/settings-view";
 import { AgentToolsView } from "@/components/views/agent-tools-view";
 import { InterviewView } from "@/components/views/interview-view";
 import { ContextView } from "@/components/views/context-view";
+import { ProfilesView } from "@/components/views/profiles-view";
 import { useAppStore } from "@/store/app-store";
 import { getElectronAPI, isElectron } from "@/lib/electron";
 
@@ -109,6 +110,8 @@ export default function Home() {
         return <InterviewView />;
       case "context":
         return <ContextView />;
+      case "profiles":
+        return <ProfilesView />;
       default:
         return <WelcomeView />;
     }

@@ -21,6 +21,7 @@ import {
   GripVertical,
   Trash2,
   Undo2,
+  UserCircle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -356,6 +357,11 @@ export function Sidebar() {
           label: "Agent Tools",
           icon: Wrench,
           shortcut: NAV_SHORTCUTS.tools,
+        },
+        {
+          id: "profiles",
+          label: "AI Profiles",
+          icon: UserCircle,
         },
       ],
     },

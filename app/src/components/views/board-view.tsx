@@ -23,6 +23,7 @@ import {
   FeatureImagePath,
   AgentModel,
   ThinkingLevel,
+  AIProfile,
 } from "@/store/app-store";
 import { getElectronAPI } from "@/lib/electron";
 import { cn, modelSupportsThinking } from "@/lib/utils";
@@ -71,6 +72,11 @@ import {
   Brain,
   Zap,
   Settings2,
+  Scale,
+  Cpu,
+  Rocket,
+  Sparkles,
+  UserCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Slider } from "@/components/ui/slider";
@@ -155,6 +161,16 @@ const CODEX_MODELS: ModelOption[] = [
   },
 ];
 
+// Profile icon mapping
+const PROFILE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  Brain,
+  Zap,
+  Scale,
+  Cpu,
+  Rocket,
+  Sparkles,
+};
+
 export function BoardView() {
   const {
     currentProject,
@@ -168,6 +184,7 @@ export function BoardView() {
     maxConcurrency,
     setMaxConcurrency,
     defaultSkipTests,
+    aiProfiles,
   } = useAppStore();
   const [activeFeature, setActiveFeature] = useState<Feature | null>(null);
   const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
@@ -1675,6 +1692,89 @@ export function BoardView() {
 
             {/* Model Tab */}
             <TabsContent value="model" className="space-y-4 overflow-y-auto">
+              {/* Quick Select Profile Section */}
+              {aiProfiles.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="flex items-center gap-2">
+                      <UserCircle className="w-4 h-4 text-brand-500" />
+                      Quick Select Profile
+                    </Label>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full border border-brand-500/40 text-brand-500">
+                      Presets
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {aiProfiles.slice(0, 6).map((profile) => {
+                      const IconComponent = profile.icon ? PROFILE_ICONS[profile.icon] : Brain;
+                      const isCodex = profile.provider === "codex";
+                      const isSelected = newFeature.model === profile.model &&
+                        newFeature.thinkingLevel === profile.thinkingLevel;
+                      return (
+                        <button
+                          key={profile.id}
+                          type="button"
+                          onClick={() => {
+                            setNewFeature({
+                              ...newFeature,
+                              model: profile.model,
+                              thinkingLevel: profile.thinkingLevel,
+                            });
+                            if (profile.thinkingLevel === "ultrathink") {
+                              toast.warning("Ultrathink Selected", {
+                                description: "Ultrathink uses extensive reasoning (45-180s, ~$0.48/task).",
+                                duration: 4000,
+                              });
+                            }
+                          }}
+                          className={cn(
+                            "flex items-center gap-2 p-2 rounded-lg border text-left transition-all",
+                            isSelected
+                              ? "bg-brand-500/10 border-brand-500 text-foreground"
+                              : "bg-background hover:bg-accent border-input"
+                          )}
+                          data-testid={`profile-quick-select-${profile.id}`}
+                        >
+                          <div className={cn(
+                            "w-7 h-7 rounded flex items-center justify-center flex-shrink-0",
+                            isCodex ? "bg-emerald-500/10" : "bg-primary/10"
+                          )}>
+                            {IconComponent && (
+                              <IconComponent className={cn(
+                                "w-4 h-4",
+                                isCodex ? "text-emerald-500" : "text-primary"
+                              )} />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{profile.name}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {profile.model}{profile.thinkingLevel !== "none" && ` + ${profile.thinkingLevel}`}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Or customize below. Manage profiles in{" "}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddDialog(false);
+                        useAppStore.getState().setCurrentView("profiles");
+                      }}
+                      className="text-brand-500 hover:underline"
+                    >
+                      AI Profiles
+                    </button>
+                  </p>
+                </div>
+              )}
+
+              {/* Separator */}
+              {aiProfiles.length > 0 && <div className="border-t border-border" />}
+
               {/* Claude Models Section */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -1918,6 +2018,79 @@ export function BoardView() {
 
               {/* Model Tab */}
               <TabsContent value="model" className="space-y-4 overflow-y-auto">
+                {/* Quick Select Profile Section */}
+                {aiProfiles.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="flex items-center gap-2">
+                        <UserCircle className="w-4 h-4 text-brand-500" />
+                        Quick Select Profile
+                      </Label>
+                      <span className="text-[11px] px-2 py-0.5 rounded-full border border-brand-500/40 text-brand-500">
+                        Presets
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {aiProfiles.slice(0, 6).map((profile) => {
+                        const IconComponent = profile.icon ? PROFILE_ICONS[profile.icon] : Brain;
+                        const isCodex = profile.provider === "codex";
+                        const isSelected = editingFeature.model === profile.model &&
+                          editingFeature.thinkingLevel === profile.thinkingLevel;
+                        return (
+                          <button
+                            key={profile.id}
+                            type="button"
+                            onClick={() => {
+                              setEditingFeature({
+                                ...editingFeature,
+                                model: profile.model,
+                                thinkingLevel: profile.thinkingLevel,
+                              });
+                              if (profile.thinkingLevel === "ultrathink") {
+                                toast.warning("Ultrathink Selected", {
+                                  description: "Ultrathink uses extensive reasoning (45-180s, ~$0.48/task).",
+                                  duration: 4000,
+                                });
+                              }
+                            }}
+                            className={cn(
+                              "flex items-center gap-2 p-2 rounded-lg border text-left transition-all",
+                              isSelected
+                                ? "bg-brand-500/10 border-brand-500 text-foreground"
+                                : "bg-background hover:bg-accent border-input"
+                            )}
+                            data-testid={`edit-profile-quick-select-${profile.id}`}
+                          >
+                            <div className={cn(
+                              "w-7 h-7 rounded flex items-center justify-center flex-shrink-0",
+                              isCodex ? "bg-emerald-500/10" : "bg-primary/10"
+                            )}>
+                              {IconComponent && (
+                                <IconComponent className={cn(
+                                  "w-4 h-4",
+                                  isCodex ? "text-emerald-500" : "text-primary"
+                                )} />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium truncate">{profile.name}</p>
+                              <p className="text-[10px] text-muted-foreground truncate">
+                                {profile.model}{profile.thinkingLevel !== "none" && ` + ${profile.thinkingLevel}`}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Or customize below.
+                    </p>
+                  </div>
+                )}
+
+                {/* Separator */}
+                {aiProfiles.length > 0 && <div className="border-t border-border" />}
+
                 {/* Claude Models Section */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">

@@ -72,9 +72,9 @@
     "description": "When agent finish work the cards is moved either to waiting approval or into verified one But mostly its include some type of summary at the end i want you to modify our prompts and ui so when its in both states we can see the feature summary of what was done / modified instead of relying on going to code editor to see what got changed etc.",
     "steps": [],
     "status": "verified",
-    "startedAt": "2025-12-09T22:09:13.684Z",
-    "imagePaths": [],
     "skipTests": true,
+    "imagePaths": [],
+    "startedAt": "2025-12-09T22:09:13.684Z",
     "model": "opus",
     "thinkingLevel": "none"
   },
@@ -84,9 +84,9 @@
     "description": "When running new feature in skip automated testing once its got finished its moved to waiting approval for us to manual test it / follow up prompt. Once we are satisfied we can click commit button so ai agent can commit it work this is only hapening in this scenerio because if we have unchecked the skip automated testing its do it automaticly and commit already. But the issue is when its going to commit we move it to in progress state where we can use stop button and if user use that button its moved to backlog column and. that kinda break what we are doing becase we have no longer even abbility to move it back to waiting approval or to run commit button / follow up again so if user use manual one and stop the commit i want it to be again moved back to waiting approval state / column",
     "steps": [],
     "status": "verified",
-    "startedAt": "2025-12-09T22:31:41.946Z",
-    "imagePaths": [],
     "skipTests": true,
+    "imagePaths": [],
+    "startedAt": "2025-12-09T22:31:41.946Z",
     "model": "opus",
     "thinkingLevel": "none"
   },
@@ -102,9 +102,9 @@
       "agent execute task with correct model "
     ],
     "status": "verified",
-    "startedAt": "2025-12-09T23:07:37.223Z",
-    "imagePaths": [],
     "skipTests": false,
+    "imagePaths": [],
+    "startedAt": "2025-12-09T23:07:37.223Z",
     "summary": "Added model selection (Haiku/Sonnet/Opus) and thinking level (None/Low/Medium/High) controls to feature creation and edit dialogs. Modified: app-store.ts (added AgentModel and ThinkingLevel types), board-view.tsx (UI controls), feature-executor.js (dynamic model/thinking config), feature-loader.js (field persistence). Agent now executes with user-selected model and extended thinking settings.",
     "model": "opus",
     "thinkingLevel": "none"
@@ -115,9 +115,9 @@
     "description": "I want you to refactor the add new feature modal there are to many settings going on and its hard / annoyig to navigate lets split the settings in modal into tabs \nprompt icon - prompt and category\ngear icon - model and thinking ( here i would also like to split somehow the claude with thinking and codex that dont use it )\ntest icon - skip automated testing and verification steps\n",
     "steps": [],
     "status": "verified",
-    "startedAt": "2025-12-10T02:17:18.943Z",
-    "imagePaths": [],
     "skipTests": true,
+    "imagePaths": [],
+    "startedAt": "2025-12-10T02:17:18.943Z",
     "summary": "Made model selection buttons compact. Removed descriptions and badges from cards, now shows short model names (Haiku, Sonnet, Opus, Max, Codex, Mini) in horizontal row. Full description available on hover. Modified: board-view.tsx (renderModelOptions function).",
     "model": "opus",
     "thinkingLevel": "high"
@@ -128,7 +128,7 @@
     "description": "Make the add new feature modal widther ",
     "steps": [],
     "status": "verified",
-    "startedAt": "2025-12-10T02:25:21.328Z",
+    "skipTests": true,
     "imagePaths": [
       {
         "id": "img-1765333063064-qygrbjul4",
@@ -137,7 +137,7 @@
         "mimeType": "image/png"
       }
     ],
-    "skipTests": true,
+    "startedAt": "2025-12-10T02:25:21.328Z",
     "summary": "Increased dialog max-width from max-w-md/max-w-lg to max-w-2xl. Modified: app/src/components/ui/dialog.tsx. This makes the add new feature modal and all other dialogs wider (from 448-512px to 672px) for better content display.",
     "model": "haiku",
     "thinkingLevel": "none"
@@ -148,9 +148,9 @@
     "description": "For example i got haiku model running or codex one but we can still see opus 4.5 check if it not hardcoded and fix it to use proper model name that was used in this task",
     "steps": [],
     "status": "verified",
-    "startedAt": "2025-12-10T02:40:43.706Z",
-    "imagePaths": [],
     "skipTests": true,
+    "imagePaths": [],
+    "startedAt": "2025-12-10T02:40:43.706Z",
     "summary": "Kanban cards now render the agent info model badge using feature.model so the displayed model matches the one selected for the task.",
     "model": "gpt-5.1-codex",
     "thinkingLevel": "none"
@@ -161,7 +161,7 @@
     "description": "describe the attached image do not change code",
     "steps": [],
     "status": "verified",
-    "startedAt": "2025-12-10T02:02:54.785Z",
+    "skipTests": true,
     "imagePaths": [
       {
         "id": "img-1765331797511-v4ssc1hha",
@@ -170,7 +170,7 @@
         "mimeType": "image/png"
       }
     ],
-    "skipTests": true,
+    "startedAt": "2025-12-10T02:02:54.785Z",
     "model": "opus",
     "thinkingLevel": "none"
   },
@@ -180,7 +180,7 @@
     "description": "Add claude and codex to the left sidebar of settings so its will scroll to thoes sections as well",
     "steps": [],
     "status": "verified",
-    "startedAt": "2025-12-10T09:32:31.638Z",
+    "skipTests": true,
     "imagePaths": [
       {
         "id": "img-1765358823366-6vchdhwsj",
@@ -189,7 +189,7 @@
         "mimeType": "image/png"
       }
     ],
-    "skipTests": true,
+    "startedAt": "2025-12-10T09:32:31.638Z",
     "model": "sonnet",
     "thinkingLevel": "none"
   },
@@ -199,9 +199,9 @@
     "description": "When u write new feature for ai agent and attacht context images and change tab to choose diff model and go back to prompt tab the image preview break and im not sure if it even saved properly in state to be later attached check it out for me",
     "steps": [],
     "status": "verified",
-    "startedAt": "2025-12-10T09:59:02.988Z",
-    "imagePaths": [],
     "skipTests": true,
+    "imagePaths": [],
+    "startedAt": "2025-12-10T09:59:02.988Z",
     "summary": "Fixed image preview breaking when switching tabs in Add Feature modal. Added previewMap/onPreviewMapChange props to DescriptionImageDropZone component to lift preview state up to parent. Modified: description-image-dropzone.tsx (added parent-controlled state support), board-view.tsx (added newFeaturePreviewMap and followUpPreviewMap state, wired up to DescriptionImageDropZone). Image paths were already stored correctly in state - only the preview thumbnails (base64) were lost on tab switch due to component unmounting.",
     "model": "opus",
     "thinkingLevel": "high"
@@ -212,7 +212,7 @@
     "description": "Take a look at waiting aproval column in kanban board and fix the card that render in it u can see in attached images that they text is overlaping check other columns how we have them",
     "steps": [],
     "status": "verified",
-    "startedAt": "2025-12-10T10:46:42.494Z",
+    "skipTests": true,
     "imagePaths": [
       {
         "id": "img-1765363296205-e4cwlj2j8",
@@ -233,7 +233,7 @@
         "mimeType": "image/png"
       }
     ],
-    "skipTests": true,
+    "startedAt": "2025-12-10T10:46:42.494Z",
     "model": "sonnet",
     "thinkingLevel": "low"
   },
@@ -242,10 +242,10 @@
     "category": "Core",
     "description": "I want to have some abbility when executing a task on project to have some type of rewing / checkpoint system so if the changes made by agent in the project dont satisfy me / break something i can click in the ui to revert them. The best way for it would be to implement github worktress so when spin up new task claude take a look at it generate new branch that fit task issue and make it as gihub worktree then we would create a a new folder in project .automaker/worktree with branch name and clone of repo so agent can freely work one something like that ",
     "steps": [],
-    "status": "waiting_approval",
-    "startedAt": "2025-12-10T11:11:06.115Z",
-    "imagePaths": [],
+    "status": "verified",
     "skipTests": true,
+    "imagePaths": [],
+    "startedAt": "2025-12-10T11:11:06.115Z",
     "summary": "Implemented Git Worktree Checkpoint/Revert System. Created: worktree-manager.js service. Modified: auto-mode-service.js (worktree integration, revert/merge methods), feature-loader.js (worktree tracking), main.js (IPC handlers), preload.js (API exposure), app-store.ts (Feature type), electron.d.ts (types), electron.ts (mock API), kanban-card.tsx (branch badge, revert/merge buttons), board-view.tsx (handlers). Features: isolated git branches per feature, branch badge on cards, revert changes button, merge to main button, file diff APIs.",
     "model": "opus",
     "thinkingLevel": "ultrathink"
@@ -255,12 +255,25 @@
     "category": "Kanban",
     "description": "When a agent is workig on task or when its in waiting approval column its would be nice to have some type of git diff panel and see what files got changed as well as reusing our custom themes we have in settings for the editor view of it take a look at codebase and create implementation for it",
     "steps": [],
-    "status": "waiting_approval",
-    "startedAt": "2025-12-10T11:16:54.069Z",
-    "imagePaths": [],
+    "status": "verified",
     "skipTests": true,
+    "imagePaths": [],
+    "startedAt": "2025-12-10T11:16:54.069Z",
     "summary": "Added git diff panel for in-progress and waiting approval features. Created GitDiffPanel component with themed syntax highlighting. Modified: git-diff-panel.tsx (new), agent-output-modal.tsx, worktree-manager.js, auto-mode-service.js, main.js, preload.js, electron.d.ts. The panel shows changed files with +/- stats and expandable unified diff view using CSS theme variables.",
     "model": "opus",
     "thinkingLevel": "ultrathink"
+  },
+  {
+    "id": "feature-1765366278888-fobz39cc4",
+    "category": "Core",
+    "description": "Implement profile view and in the sidebar the profile view would allow user to defined different ai provider profiels like heavy-task would be claude opus model with ultrathink or debugging would be codex max. This will give user flexibillity in our model tab to quickly use own defined profiles preset of models.",
+    "steps": [],
+    "status": "waiting_approval",
+    "skipTests": true,
+    "imagePaths": [],
+    "startedAt": "2025-12-10T11:31:20.842Z",
+    "summary": "Implemented AI Profiles feature for managing model configuration presets. Created: profiles-view.tsx. Modified: app-store.ts (added AIProfile type, state, and CRUD actions), sidebar.tsx (added profiles nav item), page.tsx (added profiles view routing), board-view.tsx (added Quick Select Profile section in Add/Edit Feature dialogs). Features: 5 built-in profiles (Heavy Task, Balanced, Quick Edit, Codex Power, Codex Fast), custom profile CRUD, drag-and-drop reordering, quick profile selection in feature dialogs.",
+    "model": "opus",
+    "thinkingLevel": "high"
   }
 ]

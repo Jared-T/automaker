@@ -10,7 +10,8 @@ export type ViewMode =
   | "settings"
   | "tools"
   | "interview"
-  | "context";
+  | "context"
+  | "profiles";
 
 export type ThemeMode =
   | "light"
@@ -94,6 +95,18 @@ export type ModelProvider = "claude" | "codex";
 // Thinking level (budget_tokens) options
 export type ThinkingLevel = "none" | "low" | "medium" | "high" | "ultrathink";
 
+// AI Provider Profile - user-defined presets for model configurations
+export interface AIProfile {
+  id: string;
+  name: string;
+  description: string;
+  model: AgentModel;
+  thinkingLevel: ThinkingLevel;
+  provider: ModelProvider;
+  isBuiltIn: boolean; // Built-in profiles cannot be deleted
+  icon?: string; // Optional icon name from lucide
+}
+
 export interface Feature {
   id: string;
   category: string;
@@ -154,6 +167,9 @@ export interface AppState {
 
   // Feature Default Settings
   defaultSkipTests: boolean; // Default value for skip tests when creating new features
+
+  // AI Profiles
+  aiProfiles: AIProfile[];
 }
 
 export interface AutoModeActivity {
@@ -239,9 +255,69 @@ export interface AppActions {
   // Feature Default Settings actions
   setDefaultSkipTests: (skip: boolean) => void;
 
+  // AI Profile actions
+  addAIProfile: (profile: Omit<AIProfile, "id">) => void;
+  updateAIProfile: (id: string, updates: Partial<AIProfile>) => void;
+  removeAIProfile: (id: string) => void;
+  reorderAIProfiles: (oldIndex: number, newIndex: number) => void;
+
   // Reset
   reset: () => void;
 }
+
+// Default built-in AI profiles
+const DEFAULT_AI_PROFILES: AIProfile[] = [
+  {
+    id: "profile-heavy-task",
+    name: "Heavy Task",
+    description: "Claude Opus with Ultrathink for complex architecture, migrations, or deep debugging.",
+    model: "opus",
+    thinkingLevel: "ultrathink",
+    provider: "claude",
+    isBuiltIn: true,
+    icon: "Brain",
+  },
+  {
+    id: "profile-balanced",
+    name: "Balanced",
+    description: "Claude Sonnet with medium thinking for typical development tasks.",
+    model: "sonnet",
+    thinkingLevel: "medium",
+    provider: "claude",
+    isBuiltIn: true,
+    icon: "Scale",
+  },
+  {
+    id: "profile-quick-edit",
+    name: "Quick Edit",
+    description: "Claude Haiku for fast, simple edits and minor fixes.",
+    model: "haiku",
+    thinkingLevel: "none",
+    provider: "claude",
+    isBuiltIn: true,
+    icon: "Zap",
+  },
+  {
+    id: "profile-codex-power",
+    name: "Codex Power",
+    description: "GPT-5.1 Codex Max for deep coding tasks via OpenAI CLI.",
+    model: "gpt-5.1-codex-max",
+    thinkingLevel: "none",
+    provider: "codex",
+    isBuiltIn: true,
+    icon: "Cpu",
+  },
+  {
+    id: "profile-codex-fast",
+    name: "Codex Fast",
+    description: "GPT-5.1 Codex Mini for lightweight and quick edits.",
+    model: "gpt-5.1-codex-mini",
+    thinkingLevel: "none",
+    provider: "codex",
+    isBuiltIn: true,
+    icon: "Rocket",
+  },
+];
 
 const initialState: AppState = {
   projects: [],
@@ -267,6 +343,7 @@ const initialState: AppState = {
   maxConcurrency: 3, // Default to 3 concurrent agents
   kanbanCardDetailLevel: "standard", // Default to standard detail level
   defaultSkipTests: false, // Default to TDD mode (tests enabled)
+  aiProfiles: DEFAULT_AI_PROFILES,
 };
 
 export const useAppStore = create<AppState & AppActions>()(
@@ -595,6 +672,37 @@ export const useAppStore = create<AppState & AppActions>()(
       // Feature Default Settings actions
       setDefaultSkipTests: (skip) => set({ defaultSkipTests: skip }),
 
+      // AI Profile actions
+      addAIProfile: (profile) => {
+        const id = `profile-${Date.now()}-${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+        set({ aiProfiles: [...get().aiProfiles, { ...profile, id }] });
+      },
+
+      updateAIProfile: (id, updates) => {
+        set({
+          aiProfiles: get().aiProfiles.map((p) =>
+            p.id === id ? { ...p, ...updates } : p
+          ),
+        });
+      },
+
+      removeAIProfile: (id) => {
+        // Only allow removing non-built-in profiles
+        const profile = get().aiProfiles.find((p) => p.id === id);
+        if (profile && !profile.isBuiltIn) {
+          set({ aiProfiles: get().aiProfiles.filter((p) => p.id !== id) });
+        }
+      },
+
+      reorderAIProfiles: (oldIndex, newIndex) => {
+        const profiles = [...get().aiProfiles];
+        const [movedProfile] = profiles.splice(oldIndex, 1);
+        profiles.splice(newIndex, 0, movedProfile);
+        set({ aiProfiles: profiles });
+      },
+
       // Reset
       reset: () => set(initialState),
     }),
@@ -613,6 +721,7 @@ export const useAppStore = create<AppState & AppActions>()(
         maxConcurrency: state.maxConcurrency,
         kanbanCardDetailLevel: state.kanbanCardDetailLevel,
         defaultSkipTests: state.defaultSkipTests,
+        aiProfiles: state.aiProfiles,
       }),
     }
   )
