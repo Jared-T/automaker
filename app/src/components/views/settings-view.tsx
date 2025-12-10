@@ -34,7 +34,7 @@ import {
   ClaudeCliStatus,
   CodexCliStatus,
 } from "./settings-view/cli-status-section";
-import { AppearanceSection } from "./settings-view/appearance-section";
+import { AppearanceSection } from "./settings-view/appearance/appearance-section";
 import { KanbanDisplaySection } from "./settings-view/kanban-display-section";
 import { KeyboardShortcutsSection } from "./settings-view/keyboard-shortcuts-section";
 import { FeatureDefaultsSection } from "./settings-view/feature-defaults-section";
