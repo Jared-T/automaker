@@ -65,22 +65,40 @@ export function ClaudeSetupStep({
   const [apiKey, setApiKey] = useState("");
   const [showTokenModal, setShowTokenModal] = useState(false);
 
+  // Memoize API functions to prevent infinite loops
+  const statusApi = useCallback(
+    () => getElectronAPI().setup?.getClaudeStatus() || Promise.reject(),
+    []
+  );
+
+  const installApi = useCallback(
+    () => getElectronAPI().setup?.installClaude() || Promise.reject(),
+    []
+  );
+
+  const getStoreState = useCallback(
+    () => useSetupStore.getState().claudeCliStatus,
+    []
+  );
+
   // Use custom hooks
   const { isChecking, checkStatus } = useCliStatus({
     cliType: "claude",
-    statusApi: () =>
-      getElectronAPI().setup?.getClaudeStatus() || Promise.reject(),
+    statusApi,
     setCliStatus: setClaudeCliStatus,
     setAuthStatus: setClaudeAuthStatus,
   });
 
+  const onInstallSuccess = useCallback(() => {
+    checkStatus();
+  }, [checkStatus]);
+
   const { isInstalling, installProgress, install } = useCliInstallation({
     cliType: "claude",
-    installApi: () =>
-      getElectronAPI().setup?.installClaude() || Promise.reject(),
+    installApi,
     onProgressEvent: getElectronAPI().setup?.onInstallProgress,
-    onSuccess: checkStatus,
-    getStoreState: () => useSetupStore.getState().claudeCliStatus,
+    onSuccess: onInstallSuccess,
+    getStoreState,
   });
 
   const { isSaving: isSavingOAuth, saveToken: saveOAuthToken } = useTokenSave({

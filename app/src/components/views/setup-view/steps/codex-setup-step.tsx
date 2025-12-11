@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,21 +58,34 @@ export function CodexSetupStep({
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [apiKey, setApiKey] = useState("");
 
+  // Memoize API functions to prevent infinite loops
+  const statusApi = useCallback(
+    () => getElectronAPI().setup?.getCodexStatus() || Promise.reject(),
+    []
+  );
+
+  const installApi = useCallback(
+    () => getElectronAPI().setup?.installCodex() || Promise.reject(),
+    []
+  );
+
   // Use custom hooks
   const { isChecking, checkStatus } = useCliStatus({
     cliType: "codex",
-    statusApi: () =>
-      getElectronAPI().setup?.getCodexStatus() || Promise.reject(),
+    statusApi,
     setCliStatus: setCodexCliStatus,
     setAuthStatus: setCodexAuthStatus,
   });
 
+  const onInstallSuccess = useCallback(() => {
+    checkStatus();
+  }, [checkStatus]);
+
   const { isInstalling, installProgress, install } = useCliInstallation({
     cliType: "codex",
-    installApi: () =>
-      getElectronAPI().setup?.installCodex() || Promise.reject(),
+    installApi,
     onProgressEvent: getElectronAPI().setup?.onInstallProgress,
-    onSuccess: checkStatus,
+    onSuccess: onInstallSuccess,
   });
 
   const { isSaving: isSavingKey, saveToken: saveApiKeyToken } = useTokenSave({
