@@ -7,7 +7,6 @@ import { BoardView } from "@/components/views/board-view";
 import { SpecView } from "@/components/views/spec-view";
 import { AgentView } from "@/components/views/agent-view";
 import { SettingsView } from "@/components/views/settings-view";
-import { AgentToolsView } from "@/components/views/agent-tools-view";
 import { InterviewView } from "@/components/views/interview-view";
 import { ContextView } from "@/components/views/context-view";
 import { ProfilesView } from "@/components/views/profiles-view";
@@ -171,8 +170,6 @@ export default function Home() {
         return <AgentView />;
       case "settings":
         return <SettingsView />;
-      case "tools":
-        return <AgentToolsView />;
       case "interview":
         return <InterviewView />;
       case "context":

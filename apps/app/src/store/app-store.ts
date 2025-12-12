@@ -9,7 +9,6 @@ export type ViewMode =
   | "board"
   | "agent"
   | "settings"
-  | "tools"
   | "interview"
   | "context"
   | "profiles"
@@ -113,7 +112,6 @@ export interface KeyboardShortcuts {
   agent: string;
   spec: string;
   context: string;
-  tools: string;
   settings: string;
   profiles: string;
 
@@ -139,7 +137,6 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: KeyboardShortcuts = {
   agent: "A",
   spec: "D",
   context: "C",
-  tools: "T",
   settings: "S",
   profiles: "M",
   

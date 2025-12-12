@@ -13,7 +13,6 @@ import {
   Bot,
   Folder,
   X,
-  Wrench,
   PanelLeft,
   PanelLeftClose,
   ChevronDown,
@@ -576,12 +575,6 @@ export function Sidebar() {
           label: "Context",
           icon: BookOpen,
           shortcut: shortcuts.context,
-        },
-        {
-          id: "tools",
-          label: "Agent Tools",
-          icon: Wrench,
-          shortcut: shortcuts.tools,
         },
         {
           id: "profiles",
