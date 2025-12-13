@@ -352,7 +352,8 @@ export function TerminalView() {
       const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
 
       // Parse shortcut string to check for match
-      const matchesShortcut = (shortcutStr: string) => {
+      const matchesShortcut = (shortcutStr: string | undefined) => {
+        if (!shortcutStr) return false;
         const parts = shortcutStr.toLowerCase().split('+');
         const key = parts[parts.length - 1];
         const needsCmd = parts.includes('cmd');
