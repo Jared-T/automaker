@@ -75,7 +75,18 @@ export class AutoModeService {
    */
   async startAutoLoop(projectPath: string, maxConcurrency = 3): Promise<void> {
     if (this.autoLoopRunning) {
-      throw new Error("Auto mode is already running");
+      // If already running for the same project, just update concurrency and return (idempotent)
+      if (this.config?.projectPath === projectPath) {
+        console.log(
+          `[AutoMode] Auto mode already running for ${projectPath}, updating concurrency to ${maxConcurrency}`
+        );
+        this.config.maxConcurrency = maxConcurrency;
+        return;
+      }
+      // If running for a different project, throw an error
+      throw new Error(
+        `Auto mode is already running for project: ${this.config?.projectPath}`
+      );
     }
 
     this.autoLoopRunning = true;
@@ -819,12 +830,14 @@ Format your response as a structured markdown document.`;
     autoLoopRunning: boolean;
     runningFeatures: string[];
     runningCount: number;
+    projectPath: string | null;
   } {
     return {
       isRunning: this.autoLoopRunning || this.runningFeatures.size > 0,
       autoLoopRunning: this.autoLoopRunning,
       runningFeatures: Array.from(this.runningFeatures.keys()),
       runningCount: this.runningFeatures.size,
+      projectPath: this.config?.projectPath || null,
     };
   }
 

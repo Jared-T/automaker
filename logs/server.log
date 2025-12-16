@@ -6,25 +6,19 @@
 > @automaker/server@0.1.0 dev
 > tsx watch src/index.ts
 
-[dotenv@17.2.3] injecting env (1) from .env -- tip: ⚙️  override existing env vars with { override: true }
-[Server] ✓ CLAUDE_CODE_OAUTH_TOKEN detected (subscription auth)
+[dotenv@17.2.3] injecting env (7) from .env -- tip: 🔄 add secrets lifecycle management: https://dotenvx.com/ops
 
-╔═══════════════════════════════════════════════════════╗
-║           Automaker Backend Server                    ║
-╠═══════════════════════════════════════════════════════╣
-║  HTTP API:    http://localhost:3008                  ║
-║  WebSocket:   ws://localhost:3008/api/events         ║
-║  Terminal:    ws://localhost:3008/api/terminal/ws    ║
-║  Health:      http://localhost:3008/api/health       ║
-║  Terminal:    enabled                              ║
-╚═══════════════════════════════════════════════════════╝
+╔═══════════════════════════════════════════════════════════════════════╗
+║  ⚠️  WARNING: No Claude authentication configured                      ║
+║                                                                       ║
+║  The Claude Agent SDK requires authentication to function.            ║
+║                                                                       ║
+║  Set your Anthropic API key:                                          ║
+║    export ANTHROPIC_API_KEY="sk-ant-..."                              ║
+║                                                                       ║
+║  Or use the setup wizard in Settings to configure authentication.     ║
+╚═══════════════════════════════════════════════════════════════════════╝
 
-[Server] Agent service initialized
-[WebSocket] Client connected
-12:52:41 AM [tsx] change in ./src\index.ts Rerunning...
-c12:52:41 AM [tsx] unlink in ./src\services\auto-mode-service.ts Restarting...
-c[dotenv@17.2.3] injecting env (1) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
-[Server] ✓ CLAUDE_CODE_OAUTH_TOKEN detected (subscription auth)
 
 ╔═══════════════════════════════════════════════════════╗
 ║           Automaker Backend Server                    ║
@@ -37,6 +31,102 @@
 ╚═══════════════════════════════════════════════════════╝
 
 [Server] Agent service initialized
+GET /api/health [32m200[0m
 [WebSocket] Client connected
-[WebSocket] Client disconnected
-^C^C
+OPTIONS /api/running-agents [32m204[0m
+GET /api/health [32m200[0m
+GET /api/running-agents [32m200[0m
+OPTIONS /api/fs/read [32m204[0m
+OPTIONS /api/spec-regeneration/status [32m204[0m
+GET /api/spec-regeneration/status [32m200[0m
+OPTIONS /api/spec-regeneration/status [32m204[0m
+POST /api/fs/read [32m200[0m
+GET /api/spec-regeneration/status [36m304[0m
+POST /api/fs/read [32m200[0m
+OPTIONS /api/features/list [32m204[0m
+OPTIONS /api/fs/read [32m204[0m
+OPTIONS /api/auto-mode/status [32m204[0m
+OPTIONS /api/features/list [32m204[0m
+POST /api/auto-mode/status [32m200[0m
+OPTIONS /api/fs/read [32m204[0m
+OPTIONS /api/auto-mode/status [32m204[0m
+POST /api/auto-mode/status [32m200[0m
+POST /api/fs/read [32m200[0m
+POST /api/fs/read [32m200[0m
+POST /api/features/list [32m200[0m
+POST /api/features/list [32m200[0m
+OPTIONS /api/features/agent-output [32m204[0m
+OPTIONS /api/auto-mode/context-exists [32m204[0m
+OPTIONS /api/features/agent-output [32m204[0m
+POST /api/features/agent-output [32m200[0m
+POST /api/auto-mode/context-exists [32m200[0m
+POST /api/features/agent-output [32m200[0m
+OPTIONS /api/auto-mode/context-exists [32m204[0m
+POST /api/auto-mode/context-exists [32m200[0m
+OPTIONS /api/features/create [32m204[0m
+[FeatureLoader] Created feature feature-1765850091586-gsmhizosc
+POST /api/features/create [32m200[0m
+OPTIONS /api/auto-mode/context-exists [32m204[0m
+POST /api/auto-mode/context-exists [32m200[0m
+OPTIONS /api/auto-mode/context-exists [32m204[0m
+POST /api/auto-mode/context-exists [32m200[0m
+OPTIONS /api/features/delete [32m204[0m
+[FeatureLoader] Deleted feature feature-1765750403190-tdhlkulnx
+POST /api/features/delete [32m200[0m
+OPTIONS /api/auto-mode/context-exists [32m204[0m
+POST /api/auto-mode/context-exists [32m200[0m
+OPTIONS /api/features/delete [32m204[0m
+[FeatureLoader] Deleted feature feature-1765750401608-qrrcf4gy2
+POST /api/features/delete [32m200[0m
+OPTIONS /api/auto-mode/context-exists [32m204[0m
+POST /api/auto-mode/context-exists [32m200[0m
+OPTIONS /api/features/delete [32m204[0m
+[FeatureLoader] Deleted feature feature-1765850091586-gsmhizosc
+POST /api/features/delete [32m200[0m
+OPTIONS /api/auto-mode/context-exists [32m204[0m
+POST /api/auto-mode/context-exists [32m200[0m
+OPTIONS /api/features/delete [32m204[0m
+[FeatureLoader] Deleted feature feature-1765750398958-gw816pwlk
+POST /api/features/delete [32m200[0m
+OPTIONS /api/features/list [32m204[0m
+OPTIONS /api/fs/read [32m204[0m
+OPTIONS /api/auto-mode/status [32m204[0m
+POST /api/features/list [32m200[0m
+OPTIONS /api/features/list [32m204[0m
+POST /api/auto-mode/status [32m200[0m
+OPTIONS /api/fs/read [32m204[0m
+OPTIONS /api/auto-mode/status [32m204[0m
+POST /api/features/list [32m200[0m
+POST /api/auto-mode/status [32m200[0m
+POST /api/fs/read [32m200[0m
+POST /api/fs/read [32m200[0m
+OPTIONS /api/features/list [32m204[0m
+OPTIONS /api/fs/read [32m204[0m
+POST /api/features/list [32m200[0m
+POST /api/fs/read [32m200[0m
+OPTIONS /api/features/list [32m204[0m
+OPTIONS /api/fs/read [32m204[0m
+POST /api/features/list [32m200[0m
+POST /api/fs/read [32m200[0m
+OPTIONS /api/features/list [32m204[0m
+OPTIONS /api/fs/read [32m204[0m
+OPTIONS /api/auto-mode/status [32m204[0m
+POST /api/features/list [32m200[0m
+POST /api/auto-mode/status [32m200[0m
+POST /api/fs/read [32m200[0m
+OPTIONS /api/features/list [32m204[0m
+OPTIONS /api/fs/read [32m204[0m
+POST /api/features/list [32m200[0m
+POST /api/fs/read [32m200[0m
+OPTIONS /api/features/list [32m204[0m
+OPTIONS /api/fs/read [32m204[0m
+POST /api/features/list [32m200[0m
+POST /api/fs/read [32m200[0m
+OPTIONS /api/features/list [32m204[0m
+OPTIONS /api/fs/read [32m204[0m
+POST /api/features/list [32m200[0m
+POST /api/fs/read [32m200[0m
+OPTIONS /api/features/list [32m204[0m
+OPTIONS /api/fs/read [32m204[0m
+POST /api/features/list [32m200[0m
+POST /api/fs/read [32m200[0m
