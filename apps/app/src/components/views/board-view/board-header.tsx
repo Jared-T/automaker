@@ -11,6 +11,7 @@ import { KeyboardShortcut } from "@/hooks/use-keyboard-shortcuts";
 interface BoardHeaderProps {
   projectName: string;
   maxConcurrency: number;
+  currentAgentsRunning: number;
   onConcurrencyChange: (value: number) => void;
   isAutoModeRunning: boolean;
   onAutoModeToggle: (enabled: boolean) => void;
@@ -22,6 +23,7 @@ interface BoardHeaderProps {
 export function BoardHeader({
   projectName,
   maxConcurrency,
+  currentAgentsRunning,
   onConcurrencyChange,
   isAutoModeRunning,
   onAutoModeToggle,
@@ -53,10 +55,10 @@ export function BoardHeader({
               data-testid="concurrency-slider"
             />
             <span
-              className="text-sm text-muted-foreground min-w-[2ch] text-center"
+              className="text-sm text-muted-foreground min-w-[5ch] text-center"
               data-testid="concurrency-value"
             >
-              {maxConcurrency}
+              {currentAgentsRunning} / {maxConcurrency}
             </span>
           </div>
         )}

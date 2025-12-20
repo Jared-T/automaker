@@ -836,6 +836,7 @@ export function BoardView() {
       <BoardHeader
         projectName={currentProject.name}
         maxConcurrency={maxConcurrency}
+        currentAgentsRunning={runningAutoTasks.length}
         onConcurrencyChange={setMaxConcurrency}
         isAutoModeRunning={autoMode.isRunning}
         onAutoModeToggle={(enabled) => {

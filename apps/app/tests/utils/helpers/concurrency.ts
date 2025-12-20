@@ -17,11 +17,31 @@ export async function getConcurrencySlider(page: Page): Promise<Locator> {
 }
 
 /**
- * Get the displayed concurrency value
+ * Get the displayed concurrency value (format: "X / Y" where X is running, Y is max)
  */
 export async function getConcurrencyValue(page: Page): Promise<string | null> {
   const valueElement = page.locator('[data-testid="concurrency-value"]');
   return await valueElement.textContent();
+}
+
+/**
+ * Get the number of currently running agents from the concurrency display
+ */
+export async function getCurrentRunningAgents(page: Page): Promise<number> {
+  const value = await getConcurrencyValue(page);
+  if (!value) return 0;
+  const match = value.match(/^(\d+)\s*\/\s*\d+$/);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+/**
+ * Get the max concurrency value from the concurrency display
+ */
+export async function getMaxConcurrencyFromDisplay(page: Page): Promise<number> {
+  const value = await getConcurrencyValue(page);
+  if (!value) return 0;
+  const match = value.match(/^\d+\s*\/\s*(\d+)$/);
+  return match ? parseInt(match[1], 10) : 0;
 }
 
 /**
