@@ -279,9 +279,19 @@ export const TaskNode = memo(function TaskNode({ data, selected }: TaskNodeProps
           </span>
 
           {/* Title */}
-          <h3 className="text-sm font-medium mt-1 line-clamp-2 text-foreground">
+          {data.title && (
+            <h3 className="text-sm font-medium mt-1 line-clamp-1 text-foreground">{data.title}</h3>
+          )}
+
+          {/* Description */}
+          <p
+            className={cn(
+              'text-xs text-muted-foreground line-clamp-2',
+              data.title ? 'mt-1' : 'mt-1 font-medium text-foreground text-sm'
+            )}
+          >
             {data.description}
-          </h3>
+          </p>
 
           {/* Progress indicator for in-progress tasks */}
           {data.isRunning && (
