@@ -754,6 +754,12 @@ export class HttpApiClient implements ElectronAPI {
     checkRemote: (projectPath: string) => this.post('/api/github/check-remote', { projectPath }),
     listIssues: (projectPath: string) => this.post('/api/github/issues', { projectPath }),
     listPRs: (projectPath: string) => this.post('/api/github/prs', { projectPath }),
+    getPRCommits: (projectPath: string, prNumber: number) =>
+      this.post('/api/github/pr-commits', { projectPath, prNumber }),
+    getPRFiles: (projectPath: string, prNumber: number) =>
+      this.post('/api/github/pr-files', { projectPath, prNumber }),
+    getPRActivity: (projectPath: string, prNumber: number) =>
+      this.post('/api/github/pr-activity', { projectPath, prNumber }),
     validateIssue: (projectPath: string, issue: IssueValidationInput, model?: string) =>
       this.post('/api/github/validate-issue', { projectPath, ...issue, model }),
     getValidationStatus: (projectPath: string, issueNumber?: number) =>

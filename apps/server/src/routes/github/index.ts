@@ -8,6 +8,9 @@ import { validatePathParams } from '../../middleware/validate-paths.js';
 import { createCheckGitHubRemoteHandler } from './routes/check-github-remote.js';
 import { createListIssuesHandler } from './routes/list-issues.js';
 import { createListPRsHandler } from './routes/list-prs.js';
+import { createPRCommitsHandler } from './routes/pr-commits.js';
+import { createPRFilesHandler } from './routes/pr-files.js';
+import { createPRActivityHandler } from './routes/pr-activity.js';
 import { createValidateIssueHandler } from './routes/validate-issue.js';
 import {
   createValidationStatusHandler,
@@ -23,6 +26,9 @@ export function createGitHubRoutes(events: EventEmitter): Router {
   router.post('/check-remote', validatePathParams('projectPath'), createCheckGitHubRemoteHandler());
   router.post('/issues', validatePathParams('projectPath'), createListIssuesHandler());
   router.post('/prs', validatePathParams('projectPath'), createListPRsHandler());
+  router.post('/pr-commits', validatePathParams('projectPath'), createPRCommitsHandler());
+  router.post('/pr-files', validatePathParams('projectPath'), createPRFilesHandler());
+  router.post('/pr-activity', validatePathParams('projectPath'), createPRActivityHandler());
   router.post(
     '/validate-issue',
     validatePathParams('projectPath'),

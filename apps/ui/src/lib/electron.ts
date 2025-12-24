@@ -166,6 +166,90 @@ export interface GitHubPR {
   body: string;
 }
 
+// PR Commits types
+export interface PRCommitAuthor {
+  name: string;
+  email: string;
+  date: string;
+  user?: {
+    login: string;
+    avatarUrl?: string;
+  };
+}
+
+export interface PRCommit {
+  oid: string;
+  messageHeadline: string;
+  messageBody: string;
+  committedDate: string;
+  authoredDate: string;
+  author: PRCommitAuthor;
+  statusCheckRollup?: {
+    state: 'SUCCESS' | 'FAILURE' | 'PENDING' | 'ERROR';
+  };
+}
+
+export interface PRCommitsResult {
+  success: boolean;
+  commits?: PRCommit[];
+  error?: string;
+}
+
+// PR Files types
+export interface PRFileChange {
+  path: string;
+  additions: number;
+  deletions: number;
+  changeType: 'ADDED' | 'MODIFIED' | 'DELETED' | 'RENAMED' | 'COPIED';
+}
+
+export interface PRFilesResult {
+  success: boolean;
+  files?: PRFileChange[];
+  additions?: number;
+  deletions?: number;
+  changedFiles?: number;
+  diff?: string;
+  error?: string;
+}
+
+// PR Activity types
+export type PRActivityEventType =
+  | 'comment'
+  | 'review'
+  | 'commit'
+  | 'labeled'
+  | 'unlabeled'
+  | 'merged'
+  | 'review_requested'
+  | 'head_ref_force_pushed';
+
+export interface PRActivityActor {
+  login: string;
+  avatarUrl?: string;
+}
+
+export interface PRActivityEvent {
+  id: string;
+  type: PRActivityEventType;
+  createdAt: string;
+  actor: PRActivityActor;
+  // Event-specific fields
+  body?: string;
+  reviewState?: 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED' | 'PENDING' | 'DISMISSED';
+  labelName?: string;
+  labelColor?: string;
+  commitSha?: string;
+  commitMessage?: string;
+  commitsCount?: number;
+}
+
+export interface PRActivityResult {
+  success: boolean;
+  events?: PRActivityEvent[];
+  error?: string;
+}
+
 export interface GitHubRemoteStatus {
   hasGitHubRemote: boolean;
   remoteUrl: string | null;
@@ -194,6 +278,12 @@ export interface GitHubAPI {
     mergedPRs?: GitHubPR[];
     error?: string;
   }>;
+  /** Get commits for a PR */
+  getPRCommits: (projectPath: string, prNumber: number) => Promise<PRCommitsResult>;
+  /** Get files changed in a PR with diff */
+  getPRFiles: (projectPath: string, prNumber: number) => Promise<PRFilesResult>;
+  /** Get activity timeline for a PR */
+  getPRActivity: (projectPath: string, prNumber: number) => Promise<PRActivityResult>;
   /** Start async validation of a GitHub issue */
   validateIssue: (
     projectPath: string,
