@@ -40,17 +40,45 @@ function formatFeaturesForPrompt(features: Feature[]): string {
  */
 function parsePlanResponse(response: string): BacklogPlanResult {
   try {
-    // Try to extract JSON from the response
+    // Log the raw response for debugging
+    logger.info('[BacklogPlan] Raw response length:', response.length);
+    logger.info('[BacklogPlan] Raw response preview:', response.substring(0, 500));
+
+    // Try to extract JSON from markdown code blocks (```json ... ```)
     const jsonMatch = response.match(/```json\n?([\s\S]*?)\n?```/);
     if (jsonMatch) {
+      logger.info('[BacklogPlan] Found JSON in markdown code block');
       return JSON.parse(jsonMatch[1]);
+    }
+
+    // Try to extract JSON from plain code blocks (``` ... ```)
+    const codeMatch = response.match(/```\n?([\s\S]*?)\n?```/);
+    if (codeMatch) {
+      try {
+        logger.info('[BacklogPlan] Found JSON in plain code block');
+        return JSON.parse(codeMatch[1]);
+      } catch {
+        // Not valid JSON, continue to next attempt
+      }
+    }
+
+    // Try to find JSON object directly in the response
+    const jsonObjectMatch = response.match(/\{[\s\S]*"changes"[\s\S]*\}/);
+    if (jsonObjectMatch) {
+      try {
+        logger.info('[BacklogPlan] Found JSON object in response');
+        return JSON.parse(jsonObjectMatch[0]);
+      } catch {
+        // Not valid JSON, continue to next attempt
+      }
     }
 
     // Try to parse the whole response as JSON
     return JSON.parse(response);
-  } catch {
-    // If parsing fails, return an empty result
+  } catch (error) {
+    // If parsing fails, log the full response and return an empty result
     logger.warn('[BacklogPlan] Failed to parse AI response as JSON');
+    logger.warn('[BacklogPlan] Full response:', response);
     return {
       changes: [],
       summary: 'Failed to parse AI response',
@@ -82,6 +110,14 @@ export async function generateBacklogPlan(
     // Build the system prompt
     const systemPrompt = `You are an AI assistant helping to modify a software project's feature backlog.
 You will be given the current list of features and a user request to modify the backlog.
+
+CRITICAL INSTRUCTIONS:
+- You MUST respond with ONLY a JSON object in the specified format - no explanations, no preamble, no questions
+- If the backlog is empty and the user wants to add features, create them based on their description
+- If the user references external projects or inspirations, infer the features they want based on their description
+- You do NOT have file system access - work only with the information provided in the prompt
+- ALWAYS generate at least one change if the user is asking for features - never return an empty changes array
+- Be creative and thorough in breaking down the user's request into specific, actionable features
 
 IMPORTANT CONTEXT (automatically injected):
 - Remember to update the dependency graph if deleting existing features
