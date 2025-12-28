@@ -228,6 +228,12 @@ export function BoardView() {
     loadPipelineConfig();
   }, [currentProject?.path, setPipelineConfig]);
 
+  // Clear pending backlog plan when project changes to avoid applying stale plans
+  useEffect(() => {
+    setPendingBacklogPlan(null);
+    setIsGeneratingPlan(false);
+  }, [currentProject?.path]);
+
   // Auto mode hook
   const autoMode = useAutoMode();
   // Get runningTasks from the hook (scoped to current project)
