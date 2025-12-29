@@ -1025,6 +1025,14 @@ export function BoardView() {
             autoMode.stop();
           }
         }}
+        isAutoLoopRunning={autoMode.isAutoLoopRunning}
+        onAutoLoopToggle={(enabled) => {
+          if (enabled) {
+            autoMode.startLoop();
+          } else {
+            autoMode.stopLoop();
+          }
+        }}
         onAddFeature={() => setShowAddDialog(true)}
         onOpenPlanDialog={() => setShowPlanDialog(true)}
         addFeatureShortcut={{

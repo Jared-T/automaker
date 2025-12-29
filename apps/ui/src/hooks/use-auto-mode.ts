@@ -18,6 +18,7 @@ export function useAutoMode() {
   const {
     autoModeByProject,
     setAutoModeRunning,
+    setAutoLoopRunning,
     addRunningTask,
     removeRunningTask,
     currentProject,
@@ -29,6 +30,7 @@ export function useAutoMode() {
     useShallow((state) => ({
       autoModeByProject: state.autoModeByProject,
       setAutoModeRunning: state.setAutoModeRunning,
+      setAutoLoopRunning: state.setAutoLoopRunning,
       addRunningTask: state.addRunningTask,
       removeRunningTask: state.removeRunningTask,
       currentProject: state.currentProject,
@@ -51,12 +53,15 @@ export function useAutoMode() {
   // Get project-specific auto mode state
   const projectId = currentProject?.id;
   const projectAutoModeState = useMemo(() => {
-    if (!projectId) return { isRunning: false, runningTasks: [] };
-    return autoModeByProject[projectId] || { isRunning: false, runningTasks: [] };
+    if (!projectId) return { isRunning: false, runningTasks: [], autoLoopRunning: false };
+    return (
+      autoModeByProject[projectId] || { isRunning: false, runningTasks: [], autoLoopRunning: false }
+    );
   }, [autoModeByProject, projectId]);
 
   const isAutoModeRunning = projectAutoModeState.isRunning;
   const runningAutoTasks = projectAutoModeState.runningTasks;
+  const isAutoLoopRunning = projectAutoModeState.autoLoopRunning;
 
   // Check if we can start a new task based on concurrency limit
   const canStartNewTask = runningAutoTasks.length < maxConcurrency;
@@ -313,6 +318,27 @@ export function useAutoMode() {
             });
           }
           break;
+
+        case 'auto_mode_started':
+          // Server-side auto loop started
+          console.log('[AutoMode] Server loop started');
+          if (eventProjectId) {
+            setAutoLoopRunning(eventProjectId, true);
+          }
+          break;
+
+        case 'auto_mode_stopped':
+          // Server-side auto loop stopped
+          console.log('[AutoMode] Server loop stopped');
+          if (eventProjectId) {
+            setAutoLoopRunning(eventProjectId, false);
+          }
+          break;
+
+        case 'auto_mode_idle':
+          // Server loop is idle (no pending features)
+          console.log('[AutoMode] Server loop idle - no pending features');
+          break;
       }
     });
 
@@ -324,6 +350,7 @@ export function useAutoMode() {
     addAutoModeActivity,
     getProjectIdFromPath,
     setPendingPlanApproval,
+    setAutoLoopRunning,
     currentProject?.path,
   ]);
 
@@ -390,13 +417,72 @@ export function useAutoMode() {
     [currentProject, removeRunningTask, addAutoModeActivity]
   );
 
+  // Start continuous auto loop - server-side, runs until backlog is empty
+  const startLoop = useCallback(async () => {
+    if (!currentProject) {
+      console.error('No project selected');
+      return;
+    }
+
+    try {
+      const api = getElectronAPI();
+      if (!api?.autoMode?.startLoop) {
+        throw new Error('Start loop API not available');
+      }
+
+      const result = await api.autoMode.startLoop(currentProject.path, maxConcurrency);
+
+      if (result.success) {
+        setAutoLoopRunning(currentProject.id, true);
+        console.log('[AutoMode] Continuous loop started');
+      } else {
+        console.error('[AutoMode] Failed to start loop:', result.error);
+        throw new Error(result.error || 'Failed to start loop');
+      }
+    } catch (error) {
+      console.error('[AutoMode] Error starting loop:', error);
+      throw error;
+    }
+  }, [currentProject, maxConcurrency, setAutoLoopRunning]);
+
+  // Stop continuous auto loop - running features will complete
+  const stopLoop = useCallback(async () => {
+    if (!currentProject) {
+      console.error('No project selected');
+      return;
+    }
+
+    try {
+      const api = getElectronAPI();
+      if (!api?.autoMode?.stopLoop) {
+        throw new Error('Stop loop API not available');
+      }
+
+      const result = await api.autoMode.stopLoop();
+
+      if (result.success) {
+        setAutoLoopRunning(currentProject.id, false);
+        console.log('[AutoMode] Continuous loop stopped');
+      } else {
+        console.error('[AutoMode] Failed to stop loop:', result.error);
+        throw new Error(result.error || 'Failed to stop loop');
+      }
+    } catch (error) {
+      console.error('[AutoMode] Error stopping loop:', error);
+      throw error;
+    }
+  }, [currentProject, setAutoLoopRunning]);
+
   return {
     isRunning: isAutoModeRunning,
     runningTasks: runningAutoTasks,
     maxConcurrency,
     canStartNewTask,
+    isAutoLoopRunning,
     start,
     stop,
     stopFeature,
+    startLoop,
+    stopLoop,
   };
 }

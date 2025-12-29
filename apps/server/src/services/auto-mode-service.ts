@@ -387,6 +387,13 @@ export class AutoModeService {
       this.emitAutoModeEvent('auto_mode_error', {
         error: errorInfo.message,
         errorType: errorInfo.type,
+        projectPath,
+      });
+      // Clean up on loop failure
+      this.autoLoopRunning = false;
+      this.emitAutoModeEvent('auto_mode_stopped', {
+        message: 'Auto mode stopped due to error',
+        projectPath,
       });
     });
   }
@@ -438,7 +445,14 @@ export class AutoModeService {
       }
     }
 
-    this.autoLoopRunning = false;
+    // Loop ended - emit stopped event if it wasn't already stopped by user
+    if (this.autoLoopRunning) {
+      this.autoLoopRunning = false;
+      this.emitAutoModeEvent('auto_mode_stopped', {
+        message: 'Auto mode loop ended',
+        projectPath: this.config?.projectPath,
+      });
+    }
   }
 
   /**
@@ -1361,11 +1375,13 @@ Format your response as a structured markdown document.`;
     isRunning: boolean;
     runningFeatures: string[];
     runningCount: number;
+    autoLoopRunning: boolean;
   } {
     return {
       isRunning: this.runningFeatures.size > 0,
       runningFeatures: Array.from(this.runningFeatures.keys()),
       runningCount: this.runningFeatures.size,
+      autoLoopRunning: this.autoLoopRunning,
     };
   }
 

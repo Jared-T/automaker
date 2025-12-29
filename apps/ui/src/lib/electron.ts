@@ -358,6 +358,7 @@ export interface AutoModeAPI {
     runningFeatures?: string[];
     runningProjects?: string[];
     runningCount?: number;
+    autoLoopRunning?: boolean;
     error?: string;
   }>;
   runFeature: (
@@ -401,6 +402,16 @@ export interface AutoModeAPI {
     editedPlan?: string,
     feedback?: string
   ) => Promise<{ success: boolean; error?: string }>;
+  startLoop: (
+    projectPath: string,
+    maxConcurrency?: number
+  ) => Promise<{ success: boolean; message?: string; error?: string }>;
+  stopLoop: () => Promise<{
+    success: boolean;
+    message?: string;
+    runningFeatures?: number;
+    error?: string;
+  }>;
   onEvent: (callback: (event: AutoModeEvent) => void) => () => void;
 }
 
@@ -1855,6 +1866,28 @@ function createMockAutoModeAPI(): AutoModeAPI {
       });
 
       return { success: true };
+    },
+
+    startLoop: async (projectPath: string, maxConcurrency?: number) => {
+      console.log('[Mock] Start auto loop:', { projectPath, maxConcurrency });
+      mockAutoModeRunning = true;
+      emitAutoModeEvent({
+        type: 'auto_mode_started',
+        message: `Auto loop started with max ${maxConcurrency || 3} concurrent features`,
+        projectPath,
+      });
+      return { success: true, message: 'Auto loop started' };
+    },
+
+    stopLoop: async () => {
+      console.log('[Mock] Stop auto loop');
+      const runningCount = mockRunningFeatures.size;
+      mockAutoModeRunning = false;
+      emitAutoModeEvent({
+        type: 'auto_mode_stopped',
+        message: 'Auto loop stopped',
+      });
+      return { success: true, message: 'Auto loop stopped', runningFeatures: runningCount };
     },
 
     approvePlan: async (

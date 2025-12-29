@@ -17,6 +17,8 @@ import { createAnalyzeProjectHandler } from './routes/analyze-project.js';
 import { createFollowUpFeatureHandler } from './routes/follow-up-feature.js';
 import { createCommitFeatureHandler } from './routes/commit-feature.js';
 import { createApprovePlanHandler } from './routes/approve-plan.js';
+import { createStartLoopHandler } from './routes/start-loop.js';
+import { createStopLoopHandler } from './routes/stop-loop.js';
 
 export function createAutoModeRoutes(autoModeService: AutoModeService): Router {
   const router = Router();
@@ -63,6 +65,14 @@ export function createAutoModeRoutes(autoModeService: AutoModeService): Router {
     validatePathParams('projectPath'),
     createApprovePlanHandler(autoModeService)
   );
+
+  // Continuous auto loop endpoints
+  router.post(
+    '/start-loop',
+    validatePathParams('projectPath'),
+    createStartLoopHandler(autoModeService)
+  );
+  router.post('/stop-loop', createStopLoopHandler(autoModeService));
 
   return router;
 }

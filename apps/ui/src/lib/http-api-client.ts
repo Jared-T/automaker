@@ -599,6 +599,9 @@ export class HttpApiClient implements ElectronAPI {
         editedPlan,
         feedback,
       }),
+    startLoop: (projectPath: string, maxConcurrency?: number) =>
+      this.post('/api/auto-mode/start-loop', { projectPath, maxConcurrency }),
+    stopLoop: () => this.post('/api/auto-mode/stop-loop', {}),
     onEvent: (callback: (event: AutoModeEvent) => void) => {
       return this.subscribeToEvent('auto-mode:event', callback as EventCallback);
     },

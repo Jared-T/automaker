@@ -434,6 +434,7 @@ export interface AppState {
     {
       isRunning: boolean;
       runningTasks: string[]; // Feature IDs being worked on
+      autoLoopRunning: boolean; // Server-side continuous loop running
     }
   >;
   autoModeActivityLog: AutoModeActivity[];
@@ -702,12 +703,14 @@ export interface AppActions {
 
   // Auto Mode actions (per-project)
   setAutoModeRunning: (projectId: string, running: boolean) => void;
+  setAutoLoopRunning: (projectId: string, running: boolean) => void;
   addRunningTask: (projectId: string, taskId: string) => void;
   removeRunningTask: (projectId: string, taskId: string) => void;
   clearRunningTasks: (projectId: string) => void;
   getAutoModeState: (projectId: string) => {
     isRunning: boolean;
     runningTasks: string[];
+    autoLoopRunning: boolean;
   };
   addAutoModeActivity: (activity: Omit<AutoModeActivity, 'id' | 'timestamp'>) => void;
   clearAutoModeActivity: () => void;
@@ -1416,6 +1419,7 @@ export const useAppStore = create<AppState & AppActions>()(
         const projectState = current[projectId] || {
           isRunning: false,
           runningTasks: [],
+          autoLoopRunning: false,
         };
         set({
           autoModeByProject: {
@@ -1425,11 +1429,27 @@ export const useAppStore = create<AppState & AppActions>()(
         });
       },
 
+      setAutoLoopRunning: (projectId, running) => {
+        const current = get().autoModeByProject;
+        const projectState = current[projectId] || {
+          isRunning: false,
+          runningTasks: [],
+          autoLoopRunning: false,
+        };
+        set({
+          autoModeByProject: {
+            ...current,
+            [projectId]: { ...projectState, autoLoopRunning: running },
+          },
+        });
+      },
+
       addRunningTask: (projectId, taskId) => {
         const current = get().autoModeByProject;
         const projectState = current[projectId] || {
           isRunning: false,
           runningTasks: [],
+          autoLoopRunning: false,
         };
         if (!projectState.runningTasks.includes(taskId)) {
           set({
@@ -1449,6 +1469,7 @@ export const useAppStore = create<AppState & AppActions>()(
         const projectState = current[projectId] || {
           isRunning: false,
           runningTasks: [],
+          autoLoopRunning: false,
         };
         set({
           autoModeByProject: {
@@ -1466,6 +1487,7 @@ export const useAppStore = create<AppState & AppActions>()(
         const projectState = current[projectId] || {
           isRunning: false,
           runningTasks: [],
+          autoLoopRunning: false,
         };
         set({
           autoModeByProject: {
@@ -1477,7 +1499,7 @@ export const useAppStore = create<AppState & AppActions>()(
 
       getAutoModeState: (projectId) => {
         const projectState = get().autoModeByProject[projectId];
-        return projectState || { isRunning: false, runningTasks: [] };
+        return projectState || { isRunning: false, runningTasks: [], autoLoopRunning: false };
       },
 
       addAutoModeActivity: (activity) => {

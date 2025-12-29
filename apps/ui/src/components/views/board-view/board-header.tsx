@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Plus, Bot, Wand2 } from 'lucide-react';
+import { Plus, Bot, Wand2, Repeat } from 'lucide-react';
 import { KeyboardShortcut } from '@/hooks/use-keyboard-shortcuts';
 import { ClaudeUsagePopover } from '@/components/claude-usage-popover';
 import { useAppStore } from '@/store/app-store';
@@ -15,6 +15,8 @@ interface BoardHeaderProps {
   onConcurrencyChange: (value: number) => void;
   isAutoModeRunning: boolean;
   onAutoModeToggle: (enabled: boolean) => void;
+  isAutoLoopRunning: boolean;
+  onAutoLoopToggle: (enabled: boolean) => void;
   onAddFeature: () => void;
   onOpenPlanDialog: () => void;
   addFeatureShortcut: KeyboardShortcut;
@@ -28,6 +30,8 @@ export function BoardHeader({
   onConcurrencyChange,
   isAutoModeRunning,
   onAutoModeToggle,
+  isAutoLoopRunning,
+  onAutoLoopToggle,
   onAddFeature,
   onOpenPlanDialog,
   addFeatureShortcut,
@@ -88,6 +92,31 @@ export function BoardHeader({
               checked={isAutoModeRunning}
               onCheckedChange={onAutoModeToggle}
               data-testid="auto-mode-toggle"
+            />
+          </div>
+        )}
+
+        {/* Full Auto Loop Toggle - runs until backlog is empty */}
+        {isMounted && (
+          <div
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
+              isAutoLoopRunning
+                ? 'bg-green-500/20 border-green-500/50'
+                : 'bg-secondary border-border'
+            }`}
+          >
+            <Repeat
+              className={`w-4 h-4 ${isAutoLoopRunning ? 'text-green-500 animate-spin' : 'text-muted-foreground'}`}
+              style={{ animationDuration: '3s' }}
+            />
+            <Label htmlFor="auto-loop-toggle" className="text-sm font-medium cursor-pointer">
+              Full Auto
+            </Label>
+            <Switch
+              id="auto-loop-toggle"
+              checked={isAutoLoopRunning}
+              onCheckedChange={onAutoLoopToggle}
+              data-testid="auto-loop-toggle"
             />
           </div>
         )}
