@@ -8,7 +8,7 @@ import { FeatureLoader } from '../../services/feature-loader.js';
 import { ProviderFactory } from '../../providers/provider-factory.js';
 import { logger, setRunningState, getErrorMessage } from './common.js';
 import type { SettingsService } from '../../services/settings-service.js';
-import { getAutoLoadClaudeMdSetting } from '../../lib/settings-helpers.js';
+import { getAutoLoadClaudeMdSetting, getPromptCustomization } from '../../lib/settings-helpers.js';
 
 const featureLoader = new FeatureLoader();
 
@@ -40,45 +40,17 @@ function formatFeaturesForPrompt(features: Feature[]): string {
  */
 function parsePlanResponse(response: string): BacklogPlanResult {
   try {
-    // Log the raw response for debugging
-    logger.info('[BacklogPlan] Raw response length:', response.length);
-    logger.info('[BacklogPlan] Raw response preview:', response.substring(0, 500));
-
-    // Try to extract JSON from markdown code blocks (```json ... ```)
+    // Try to extract JSON from the response
     const jsonMatch = response.match(/```json\n?([\s\S]*?)\n?```/);
     if (jsonMatch) {
-      logger.info('[BacklogPlan] Found JSON in markdown code block');
       return JSON.parse(jsonMatch[1]);
-    }
-
-    // Try to extract JSON from plain code blocks (``` ... ```)
-    const codeMatch = response.match(/```\n?([\s\S]*?)\n?```/);
-    if (codeMatch) {
-      try {
-        logger.info('[BacklogPlan] Found JSON in plain code block');
-        return JSON.parse(codeMatch[1]);
-      } catch {
-        // Not valid JSON, continue to next attempt
-      }
-    }
-
-    // Try to find JSON object directly in the response
-    const jsonObjectMatch = response.match(/\{[\s\S]*"changes"[\s\S]*\}/);
-    if (jsonObjectMatch) {
-      try {
-        logger.info('[BacklogPlan] Found JSON object in response');
-        return JSON.parse(jsonObjectMatch[0]);
-      } catch {
-        // Not valid JSON, continue to next attempt
-      }
     }
 
     // Try to parse the whole response as JSON
     return JSON.parse(response);
-  } catch (error) {
-    // If parsing fails, log the full response and return an empty result
+  } catch {
+    // If parsing fails, return an empty result
     logger.warn('[BacklogPlan] Failed to parse AI response as JSON');
-    logger.warn('[BacklogPlan] Full response:', response);
     return {
       changes: [],
       summary: 'Failed to parse AI response',
@@ -107,80 +79,17 @@ export async function generateBacklogPlan(
       content: `Loaded ${features.length} features from backlog`,
     });
 
+    // Load prompts from settings
+    const prompts = await getPromptCustomization(settingsService, '[BacklogPlan]');
+
     // Build the system prompt
-    const systemPrompt = `You are an AI assistant helping to modify a software project's feature backlog.
-You will be given the current list of features and a user request to modify the backlog.
+    const systemPrompt = prompts.backlogPlan.systemPrompt;
 
-CRITICAL INSTRUCTIONS:
-- You MUST respond with ONLY a JSON object in the specified format - no explanations, no preamble, no questions
-- If the backlog is empty and the user wants to add features, create them based on their description
-- If the user references external projects or inspirations, infer the features they want based on their description
-- You do NOT have file system access - work only with the information provided in the prompt
-- ALWAYS generate at least one change if the user is asking for features - never return an empty changes array
-- Be creative and thorough in breaking down the user's request into specific, actionable features
-
-IMPORTANT CONTEXT (automatically injected):
-- Remember to update the dependency graph if deleting existing features
-- Remember to define dependencies on new features hooked into relevant existing ones
-- Maintain dependency graph integrity (no orphaned dependencies)
-- When deleting a feature, identify which other features depend on it
-
-Your task is to analyze the request and produce a structured JSON plan with:
-1. Features to ADD (include title, description, category, and dependencies)
-2. Features to UPDATE (specify featureId and the updates)
-3. Features to DELETE (specify featureId)
-4. A summary of the changes
-5. Any dependency updates needed (removed dependencies due to deletions, new dependencies for new features)
-
-Respond with ONLY a JSON object in this exact format:
-\`\`\`json
-{
-  "changes": [
-    {
-      "type": "add",
-      "feature": {
-        "title": "Feature title",
-        "description": "Feature description",
-        "category": "Category name",
-        "dependencies": ["existing-feature-id"],
-        "priority": 1
-      },
-      "reason": "Why this feature should be added"
-    },
-    {
-      "type": "update",
-      "featureId": "existing-feature-id",
-      "feature": {
-        "title": "Updated title"
-      },
-      "reason": "Why this feature should be updated"
-    },
-    {
-      "type": "delete",
-      "featureId": "feature-id-to-delete",
-      "reason": "Why this feature should be deleted"
-    }
-  ],
-  "summary": "Brief overview of all proposed changes",
-  "dependencyUpdates": [
-    {
-      "featureId": "feature-that-depended-on-deleted",
-      "removedDependencies": ["deleted-feature-id"],
-      "addedDependencies": []
-    }
-  ]
-}
-\`\`\``;
-
-    // Build the user prompt
-    const userPrompt = `Current Features in Backlog:
-${formatFeaturesForPrompt(features)}
-
----
-
-User Request: ${prompt}
-
-Please analyze the current backlog and the user's request, then provide a JSON plan for the modifications.`;
+    // Build the user prompt from template
+    const currentFeatures = formatFeaturesForPrompt(features);
+    const userPrompt = prompts.backlogPlan.userPromptTemplate
+      .replace('{{currentFeatures}}', currentFeatures)
+      .replace('{{userRequest}}', prompt);
 
     events.emit('backlog-plan:event', {
       type: 'backlog_plan_progress',
