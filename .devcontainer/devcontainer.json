@@ -1,5 +1,5 @@
 {
-  "name": "Automaker",
+  "name": "Automaker Studio",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
@@ -16,7 +16,7 @@
       "onAutoForward": "silent"
     }
   },
-  "postCreateCommand": "npm install",
+  "postCreateCommand": "npm install && npm install -g @anthropic-ai/claude-code && mkdir -p /workspaces/projects",
   "postStartCommand": "npm run dev:web",
   "customizations": {
     "vscode": {
@@ -30,12 +30,8 @@
       }
     }
   },
+  "mounts": ["source=automaker-projects,target=/workspaces/projects,type=volume"],
   "remoteEnv": {
-    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}"
-  },
-  "secrets": {
-    "ANTHROPIC_API_KEY": {
-      "description": "Your Anthropic API key for Claude agents"
-    }
+    "PROJECTS_DIR": "/workspaces/projects"
   }
 }
