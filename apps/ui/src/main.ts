@@ -355,8 +355,11 @@ async function startServer(): Promise<void> {
           `Node.js executable not found at: ${command} (source: ${nodeResult.source})`
         );
       }
-    } catch {
-      throw new Error(`Node.js executable not found at: ${command} (source: ${nodeResult.source})`);
+    } catch (error) {
+      const originalError = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Failed to verify Node.js executable at: ${command} (source: ${nodeResult.source}). Reason: ${originalError}`
+      );
     }
   }
 

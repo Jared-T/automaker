@@ -166,16 +166,25 @@ export async function readFile(
 }
 
 /**
+ * Options for writeFile
+ */
+export interface WriteFileOptions {
+  encoding?: BufferEncoding;
+  mode?: number;
+  flag?: string;
+}
+
+/**
  * Wrapper around fs.writeFile that validates path first
  */
 export async function writeFile(
   filePath: string,
   data: string | Buffer,
-  encoding?: BufferEncoding
+  optionsOrEncoding?: BufferEncoding | WriteFileOptions
 ): Promise<void> {
   const validatedPath = validatePath(filePath);
   return executeWithRetry(
-    () => fs.writeFile(validatedPath, data, encoding),
+    () => fs.writeFile(validatedPath, data, optionsOrEncoding),
     `writeFile(${filePath})`
   );
 }

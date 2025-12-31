@@ -76,7 +76,10 @@ async function saveSessions(): Promise<void> {
   try {
     await secureFs.mkdir(path.dirname(SESSIONS_FILE), { recursive: true });
     const sessions = Array.from(validSessions.entries());
-    await secureFs.writeFile(SESSIONS_FILE, JSON.stringify(sessions), 'utf-8');
+    await secureFs.writeFile(SESSIONS_FILE, JSON.stringify(sessions), {
+      encoding: 'utf-8',
+      mode: 0o600,
+    });
   } catch (error) {
     console.error('[Auth] Failed to save sessions:', error);
   }
@@ -113,7 +116,7 @@ function ensureApiKey(): string {
   const newKey = crypto.randomUUID();
   try {
     secureFs.mkdirSync(path.dirname(API_KEY_FILE), { recursive: true });
-    secureFs.writeFileSync(API_KEY_FILE, newKey, { encoding: 'utf-8' });
+    secureFs.writeFileSync(API_KEY_FILE, newKey, { encoding: 'utf-8', mode: 0o600 });
     console.log('[Auth] Generated new API key');
   } catch (error) {
     console.error('[Auth] Failed to save API key:', error);

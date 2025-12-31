@@ -2,6 +2,9 @@
   "name": "automaker",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
   "workspaces": [
     "apps/*",
     "libs/*"
@@ -53,13 +56,13 @@
     ]
   },
   "dependencies": {
-    "cross-spawn": "^7.0.6",
-    "rehype-sanitize": "^6.0.0",
-    "tree-kill": "^1.2.2"
+    "cross-spawn": "7.0.6",
+    "rehype-sanitize": "6.0.0",
+    "tree-kill": "1.2.2"
   },
   "devDependencies": {
-    "husky": "^9.1.7",
-    "lint-staged": "^16.2.7",
-    "prettier": "^3.7.4"
+    "husky": "9.1.7",
+    "lint-staged": "16.2.7",
+    "prettier": "3.7.4"
   }
 }

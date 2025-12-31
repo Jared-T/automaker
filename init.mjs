@@ -39,7 +39,9 @@ function validateScriptPath(targetPath) {
   const resolved = path.resolve(__dirname, targetPath);
   const normalizedBase = path.resolve(__dirname);
   if (!resolved.startsWith(normalizedBase + path.sep) && resolved !== normalizedBase) {
-    throw new Error(`[init.mjs] Security: Path access denied outside script directory: ${targetPath}`);
+    throw new Error(
+      `[init.mjs] Security: Path access denied outside script directory: ${targetPath}`
+    );
   }
   return resolved;
 }

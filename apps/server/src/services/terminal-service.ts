@@ -257,8 +257,18 @@ export class TerminalService extends EventEmitter {
 
     // Build environment with some useful defaults
     // These settings ensure consistent terminal behavior across platforms
+    // First, create a clean copy of process.env excluding Automaker-specific variables
+    // that could pollute user shells (e.g., PORT would affect Next.js/other dev servers)
+    const automakerEnvVars = ['PORT', 'DATA_DIR', 'AUTOMAKER_API_KEY', 'NODE_PATH'];
+    const cleanEnv: Record<string, string> = {};
+    for (const [key, value] of Object.entries(process.env)) {
+      if (value !== undefined && !automakerEnvVars.includes(key)) {
+        cleanEnv[key] = value;
+      }
+    }
+
     const env: Record<string, string> = {
-      ...process.env,
+      ...cleanEnv,
       TERM: 'xterm-256color',
       COLORTERM: 'truecolor',
       TERM_PROGRAM: 'automaker-terminal',

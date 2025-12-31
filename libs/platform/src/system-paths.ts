@@ -114,13 +114,16 @@ export function getShellPaths(): string[] {
   if (process.platform === 'win32') {
     return [
       process.env.COMSPEC || 'cmd.exe',
+      'cmd.exe',
       'powershell.exe',
+      'pwsh.exe', // PowerShell Core short form
       'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
       'C:\\Program Files\\PowerShell\\7\\pwsh.exe',
+      'C:\\Program Files\\PowerShell\\7-preview\\pwsh.exe', // Preview versions
     ];
   }
 
-  return ['/bin/zsh', '/bin/bash', '/bin/sh'];
+  return ['/bin/zsh', '/bin/bash', '/bin/sh', '/usr/bin/zsh', '/usr/bin/bash'];
 }
 
 // =============================================================================

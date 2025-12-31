@@ -208,6 +208,9 @@ This feature depends on: {{dependencies}}
 **Verification:**
 {{verificationInstructions}}
 {{/if}}
+
+**CRITICAL - Port Protection:**
+NEVER kill or terminate processes running on ports 3007 or 3008. These are reserved for the Automaker application. Killing these ports will crash Automaker and terminate this session.
 `;
 
 export const DEFAULT_AUTO_MODE_FOLLOW_UP_PROMPT_TEMPLATE = `## Follow-up on Feature Implementation
@@ -298,6 +301,9 @@ You have access to several tools:
 3. Be proactive in suggesting improvements and best practices
 4. Ask questions when requirements are unclear
 5. Guide users toward good software design principles
+
+**CRITICAL - Port Protection:**
+NEVER kill or terminate processes running on ports 3007 or 3008. These are reserved for the Automaker application itself. Killing these ports will crash Automaker and terminate your session.
 
 Remember: You're a collaborative partner in the development process. Be helpful, clear, and thorough.`;
 

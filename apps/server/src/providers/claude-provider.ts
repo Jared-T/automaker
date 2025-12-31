@@ -15,6 +15,24 @@ import type {
   ModelDefinition,
 } from './types.js';
 
+// Automaker-specific environment variables that should not pollute agent processes
+// These are internal to Automaker and would interfere with user projects
+// (e.g., PORT=3008 would cause Next.js/Vite to use the wrong port)
+const AUTOMAKER_ENV_VARS = ['PORT', 'DATA_DIR', 'AUTOMAKER_API_KEY', 'NODE_PATH'];
+
+/**
+ * Build a clean environment for the SDK, excluding Automaker-specific variables
+ */
+function buildCleanEnv(): Record<string, string | undefined> {
+  const cleanEnv: Record<string, string | undefined> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!AUTOMAKER_ENV_VARS.includes(key)) {
+      cleanEnv[key] = value;
+    }
+  }
+  return cleanEnv;
+}
+
 export class ClaudeProvider extends BaseProvider {
   getName(): string {
     return 'claude';
@@ -57,6 +75,9 @@ export class ClaudeProvider extends BaseProvider {
       systemPrompt,
       maxTurns,
       cwd,
+      // Pass clean environment to SDK, excluding Automaker-specific variables
+      // This prevents PORT, DATA_DIR, etc. from polluting agent-spawned processes
+      env: buildCleanEnv(),
       // Only restrict tools if explicitly set OR (no MCP / unrestricted disabled)
       ...(allowedTools && shouldRestrictTools && { allowedTools }),
       ...(!allowedTools && shouldRestrictTools && { allowedTools: defaultTools }),
