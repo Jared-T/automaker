@@ -20,6 +20,9 @@ import {
   ensureInitialCommit,
 } from '../common.js';
 import { trackBranch } from './branch-tracking.js';
+import { createLogger } from '@automaker/utils';
+
+const logger = createLogger('Worktree');
 
 const execAsync = promisify(exec);
 
@@ -100,15 +103,22 @@ export function createCreateHandler() {
       }
 
       // Ensure the repository has at least one commit so worktree commands referencing HEAD succeed
-      await ensureInitialCommit(projectPath);
+      // Pass git identity env vars so commits work without global git config
+      const gitEnv = {
+        GIT_AUTHOR_NAME: 'Automaker',
+        GIT_AUTHOR_EMAIL: 'automaker@localhost',
+        GIT_COMMITTER_NAME: 'Automaker',
+        GIT_COMMITTER_EMAIL: 'automaker@localhost',
+      };
+      await ensureInitialCommit(projectPath, gitEnv);
 
       // First, check if git already has a worktree for this branch (anywhere)
       const existingWorktree = await findExistingWorktreeForBranch(projectPath, branchName);
       if (existingWorktree) {
         // Worktree already exists, return it as success (not an error)
         // This handles manually created worktrees or worktrees from previous runs
-        console.log(
-          `[Worktree] Found existing worktree for branch "${branchName}" at: ${existingWorktree.path}`
+        logger.info(
+          `Found existing worktree for branch "${branchName}" at: ${existingWorktree.path}`
         );
 
         // Track the branch so it persists in the UI

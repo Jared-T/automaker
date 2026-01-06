@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { createLogger } from '@automaker/utils/logger';
 import {
   PointerSensor,
   useSensor,
@@ -10,7 +11,7 @@ import { useAppStore, Feature } from '@/store/app-store';
 import { getElectronAPI } from '@/lib/electron';
 import { getHttpApiClient } from '@/lib/http-api-client';
 import type { AutoModeEvent } from '@/types/electron';
-import type { BacklogPlanResult } from '@automaker/types';
+import type { ModelAlias, CursorModelId, BacklogPlanResult } from '@automaker/types';
 import { pathsEqual } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getBlockingDependencies } from '@automaker/dependency-resolver';
@@ -33,7 +34,6 @@ import {
   ArchiveAllVerifiedDialog,
   DeleteCompletedFeatureDialog,
   EditFeatureDialog,
-  FeatureSuggestionsDialog,
   FollowUpDialog,
   PlanApprovalDialog,
 } from './board-view/dialogs';
@@ -56,11 +56,15 @@ import {
   useBoardBackground,
   useBoardPersistence,
   useFollowUpState,
-  useSuggestionsState,
+  useSelectionMode,
 } from './board-view/hooks';
+import { SelectionActionBar } from './board-view/components';
+import { MassEditDialog } from './board-view/dialogs';
 
 // Stable empty array to avoid infinite loop in selector
 const EMPTY_WORKTREES: ReturnType<ReturnType<typeof useAppStore.getState>['getWorktrees']> = [];
+
+const logger = createLogger('Board');
 
 export function BoardView() {
   const {
@@ -153,19 +157,19 @@ export function BoardView() {
     handleFollowUpDialogChange,
   } = useFollowUpState();
 
-  // Suggestions state hook
+  // Selection mode hook for mass editing
   const {
-    showSuggestionsDialog,
-    suggestionsCount,
-    featureSuggestions,
-    isGeneratingSuggestions,
-    setShowSuggestionsDialog,
-    setSuggestionsCount,
-    setFeatureSuggestions,
-    setIsGeneratingSuggestions,
-    updateSuggestions,
-    closeSuggestionsDialog,
-  } = useSuggestionsState();
+    isSelectionMode,
+    selectedFeatureIds,
+    selectedCount,
+    toggleSelectionMode,
+    toggleFeatureSelection,
+    selectAll,
+    clearSelection,
+    exitSelectionMode,
+  } = useSelectionMode();
+  const [showMassEditDialog, setShowMassEditDialog] = useState(false);
+
   // Search filter for Kanban cards
   const [searchQuery, setSearchQuery] = useState('');
   // Plan approval loading state
@@ -188,7 +192,7 @@ export function BoardView() {
 
         return result.success && result.exists === true;
       } catch (error) {
-        console.error('[Board] Error checking context:', error);
+        logger.error('Error checking context:', error);
         return false;
       }
     },
@@ -200,12 +204,10 @@ export function BoardView() {
     currentProject,
     specCreatingForProject,
     setSpecCreatingForProject,
-    setSuggestionsCount,
-    setFeatureSuggestions,
-    setIsGeneratingSuggestions,
     checkContextExists,
     features: hookFeatures,
     isLoading,
+    featuresWithContext,
     setFeaturesWithContext,
   });
 
@@ -221,7 +223,7 @@ export function BoardView() {
           setPipelineConfig(currentProject.path, result.config);
         }
       } catch (error) {
-        console.error('[Board] Failed to load pipeline config:', error);
+        logger.error('Failed to load pipeline config:', error);
       }
     };
 
@@ -293,7 +295,7 @@ export function BoardView() {
           setBranchSuggestions(localBranches);
         }
       } catch (error) {
-        console.error('[BoardView] Error fetching branches:', error);
+        logger.error('Error fetching branches:', error);
         setBranchSuggestions([]);
       }
     };
@@ -467,6 +469,72 @@ export function BoardView() {
     currentWorktreeBranch,
   });
 
+  // Handler for bulk updating multiple features
+  const handleBulkUpdate = useCallback(
+    async (updates: Partial<Feature>) => {
+      if (!currentProject || selectedFeatureIds.size === 0) return;
+
+      try {
+        const api = getHttpApiClient();
+        const featureIds = Array.from(selectedFeatureIds);
+        const result = await api.features.bulkUpdate(currentProject.path, featureIds, updates);
+
+        if (result.success) {
+          // Update local state
+          featureIds.forEach((featureId) => {
+            updateFeature(featureId, updates);
+          });
+          toast.success(`Updated ${result.updatedCount} features`);
+          exitSelectionMode();
+        } else {
+          toast.error('Failed to update some features', {
+            description: `${result.failedCount} features failed to update`,
+          });
+        }
+      } catch (error) {
+        logger.error('Bulk update failed:', error);
+        toast.error('Failed to update features');
+      }
+    },
+    [currentProject, selectedFeatureIds, updateFeature, exitSelectionMode]
+  );
+
+  // Get selected features for mass edit dialog
+  const selectedFeatures = useMemo(() => {
+    return hookFeatures.filter((f) => selectedFeatureIds.has(f.id));
+  }, [hookFeatures, selectedFeatureIds]);
+
+  // Get backlog feature IDs in current branch for "Select All"
+  const allSelectableFeatureIds = useMemo(() => {
+    return hookFeatures
+      .filter((f) => {
+        // Only backlog features
+        if (f.status !== 'backlog') return false;
+
+        // Filter by current worktree branch
+        const featureBranch = f.branchName;
+        if (!featureBranch) {
+          // No branch assigned - only selectable on primary worktree
+          return currentWorktreePath === null;
+        }
+        if (currentWorktreeBranch === null) {
+          // Viewing main but branch hasn't been initialized
+          return currentProject?.path
+            ? isPrimaryWorktreeBranch(currentProject.path, featureBranch)
+            : false;
+        }
+        // Match by branch name
+        return featureBranch === currentWorktreeBranch;
+      })
+      .map((f) => f.id);
+  }, [
+    hookFeatures,
+    currentWorktreePath,
+    currentWorktreeBranch,
+    currentProject?.path,
+    isPrimaryWorktreeBranch,
+  ]);
+
   // Handler for addressing PR comments - creates a feature and starts it automatically
   const handleAddressPRComments = useCallback(
     async (worktree: WorktreeInfo, prInfo: PRInfo) => {
@@ -502,7 +570,7 @@ export function BoardView() {
       if (newFeature) {
         await handleStartImplementation(newFeature);
       } else {
-        console.error('Could not find newly created feature to start it automatically.');
+        logger.error('Could not find newly created feature to start it automatically.');
         toast.error('Failed to auto-start feature', {
           description: 'The feature was created but could not be started automatically.',
         });
@@ -543,7 +611,7 @@ export function BoardView() {
       if (newFeature) {
         await handleStartImplementation(newFeature);
       } else {
-        console.error('Could not find newly created feature to start it automatically.');
+        logger.error('Could not find newly created feature to start it automatically.');
         toast.error('Failed to auto-start feature', {
           description: 'The feature was created but could not be started automatically.',
         });
@@ -566,7 +634,7 @@ export function BoardView() {
       if (newFeature) {
         await handleStartImplementation(newFeature);
       } else {
-        console.error('Could not find newly created feature to start it automatically.');
+        logger.error('Could not find newly created feature to start it automatically.');
         toast.error('Failed to auto-start feature', {
           description: 'The feature was created but could not be started automatically.',
         });
@@ -894,10 +962,10 @@ export function BoardView() {
           // Reload features from server to ensure sync
           loadFeatures();
         } else {
-          console.error('[Board] Failed to approve plan:', result.error);
+          logger.error('Failed to approve plan:', result.error);
         }
       } catch (error) {
-        console.error('[Board] Error approving plan:', error);
+        logger.error('Error approving plan:', error);
       } finally {
         setIsPlanApprovalLoading(false);
         setPendingPlanApproval(null);
@@ -950,10 +1018,10 @@ export function BoardView() {
           // Reload features from server to ensure sync
           loadFeatures();
         } else {
-          console.error('[Board] Failed to reject plan:', result.error);
+          logger.error('Failed to reject plan:', result.error);
         }
       } catch (error) {
-        console.error('[Board] Error rejecting plan:', error);
+        logger.error('Error rejecting plan:', error);
       } finally {
         setIsPlanApprovalLoading(false);
         setPendingPlanApproval(null);
@@ -1119,7 +1187,6 @@ export function BoardView() {
             onManualVerify={handleManualVerify}
             onMoveBackToInProgress={handleMoveBackToInProgress}
             onFollowUp={handleOpenFollowUp}
-            onCommit={handleCommitFeature}
             onComplete={handleCompleteFeature}
             onImplement={handleStartImplementation}
             onViewPlan={(feature) => setViewPlanFeature(feature)}
@@ -1130,15 +1197,15 @@ export function BoardView() {
             }}
             featuresWithContext={featuresWithContext}
             runningAutoTasks={runningAutoTasks}
-            shortcuts={shortcuts}
-            onStartNextFeatures={handleStartNextFeatures}
-            onShowSuggestions={() => setShowSuggestionsDialog(true)}
-            suggestionsCount={suggestionsCount}
             onArchiveAllVerified={() => setShowArchiveAllVerifiedDialog(true)}
             pipelineConfig={
               currentProject?.path ? pipelineConfigByProject[currentProject.path] || null : null
             }
             onOpenPipelineSettings={() => setShowPipelineSettings(true)}
+            isSelectionMode={isSelectionMode}
+            selectedFeatureIds={selectedFeatureIds}
+            onToggleFeatureSelection={toggleFeatureSelection}
+            onToggleSelectionMode={toggleSelectionMode}
           />
         ) : (
           <GraphView
@@ -1163,6 +1230,27 @@ export function BoardView() {
           />
         )}
       </div>
+
+      {/* Selection Action Bar */}
+      {isSelectionMode && (
+        <SelectionActionBar
+          selectedCount={selectedCount}
+          totalCount={allSelectableFeatureIds.length}
+          onEdit={() => setShowMassEditDialog(true)}
+          onClear={clearSelection}
+          onSelectAll={() => selectAll(allSelectableFeatureIds)}
+        />
+      )}
+
+      {/* Mass Edit Dialog */}
+      <MassEditDialog
+        open={showMassEditDialog}
+        onClose={() => setShowMassEditDialog(false)}
+        selectedFeatures={selectedFeatures}
+        onApply={handleBulkUpdate}
+        showProfilesOnly={showProfilesOnly}
+        aiProfiles={aiProfiles}
+      />
 
       {/* Board Background Modal */}
       <BoardBackgroundModal
@@ -1280,17 +1368,6 @@ export function BoardView() {
         onPreviewMapChange={setFollowUpPreviewMap}
         onSend={handleSendFollowUp}
         isMaximized={isMaximized}
-      />
-
-      {/* Feature Suggestions Dialog */}
-      <FeatureSuggestionsDialog
-        open={showSuggestionsDialog}
-        onClose={closeSuggestionsDialog}
-        projectPath={currentProject.path}
-        suggestions={featureSuggestions}
-        setSuggestions={updateSuggestions}
-        isGenerating={isGeneratingSuggestions}
-        setIsGenerating={setIsGeneratingSuggestions}
       />
 
       {/* Backlog Plan Dialog */}
@@ -1420,7 +1497,7 @@ export function BoardView() {
             // Persist changes asynchronously and in parallel
             Promise.all(
               featuresToUpdate.map((feature) => persistFeatureUpdate(feature.id, { prUrl }))
-            ).catch(console.error);
+            ).catch((err) => logger.error('Error in handleMove:', err));
           }
           setWorktreeRefreshKey((k) => k + 1);
           setSelectedWorktreeForAction(null);

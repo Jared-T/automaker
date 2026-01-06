@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createLogger } from '@automaker/utils/logger';
 import {
   Terminal as TerminalIcon,
   Plus,
@@ -13,6 +14,7 @@ import {
   SquarePlus,
   Settings,
 } from 'lucide-react';
+import { getServerUrlSync } from '@/lib/http-api-client';
 import {
   useAppStore,
   type TerminalPanelContent,
@@ -48,6 +50,8 @@ import {
 import { cn } from '@/lib/utils';
 import { apiFetch, apiGet, apiPost, apiDeleteRaw, getAuthHeaders } from '@/lib/api-fetch';
 import { getApiKey } from '@/lib/http-api-client';
+
+const logger = createLogger('Terminal');
 
 interface TerminalStatus {
   enabled: boolean;
@@ -272,7 +276,7 @@ export function TerminalView() {
   // Get the default run script from terminal settings
   const defaultRunScript = useAppStore((state) => state.terminalState.defaultRunScript);
 
-  const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:3008';
+  const serverUrl = import.meta.env.VITE_SERVER_URL || getServerUrlSync();
 
   // Helper to collect all session IDs from all tabs
   const collectAllSessionIds = useCallback((): string[] => {
@@ -300,7 +304,7 @@ export function TerminalView() {
       headers['X-Terminal-Token'] = terminalState.authToken;
     }
 
-    console.log(`[Terminal] Killing ${sessionIds.length} sessions on server`);
+    logger.info(`Killing ${sessionIds.length} sessions on server`);
 
     // Kill all sessions in parallel
     await Promise.allSettled(
@@ -308,7 +312,7 @@ export function TerminalView() {
         try {
           await apiDeleteRaw(`/api/terminal/sessions/${sessionId}`, { headers });
         } catch (err) {
-          console.error(`[Terminal] Failed to kill session ${sessionId}:`, err);
+          logger.error(`Failed to kill session ${sessionId}:`, err);
         }
       })
     );
@@ -319,7 +323,7 @@ export function TerminalView() {
   const canCreateTerminal = (debounceMessage: string): boolean => {
     const now = Date.now();
     if (now - lastCreateTimeRef.current < CREATE_COOLDOWN_MS || isCreatingRef.current) {
-      console.log(debounceMessage);
+      logger.debug(debounceMessage);
       return false;
     }
     lastCreateTimeRef.current = now;
@@ -446,7 +450,7 @@ export function TerminalView() {
       }
     } catch (err) {
       setError('Failed to connect to server');
-      console.error('[Terminal] Status fetch error:', err);
+      logger.error('Status fetch error:', err);
     } finally {
       setLoading(false);
     }
@@ -468,7 +472,7 @@ export function TerminalView() {
         setServerSessionInfo({ current: data.data.currentSessions, max: data.data.maxSessions });
       }
     } catch (err) {
-      console.error('[Terminal] Failed to fetch server settings:', err);
+      logger.error('Failed to fetch server settings:', err);
     }
   }, [terminalState.isUnlocked, terminalState.authToken]);
 
@@ -572,7 +576,7 @@ export function TerminalView() {
 
     // If no saved layout or no tabs, we're done - terminal starts fresh for this project
     if (!savedLayout || savedLayout.tabs.length === 0) {
-      console.log('[Terminal] No saved layout for project, starting fresh');
+      logger.info('No saved layout for project, starting fresh');
       return;
     }
 
@@ -584,7 +588,7 @@ export function TerminalView() {
     const restoreLayout = async () => {
       // Check if we're still restoring the same project (user may have switched)
       if (restoringProjectPathRef.current !== currentPath) {
-        console.log('[Terminal] Restore cancelled - project changed');
+        logger.info('Restore cancelled - project changed');
         return;
       }
 
@@ -622,7 +626,7 @@ export function TerminalView() {
             );
             return data.success && data.data ? data.data.id : null;
           } catch (err) {
-            console.error('[Terminal] Failed to create terminal session:', err);
+            logger.error('Failed to create terminal session:', err);
             return null;
           }
         };
@@ -690,7 +694,7 @@ export function TerminalView() {
         for (let tabIndex = 0; tabIndex < savedLayout.tabs.length; tabIndex++) {
           // Check if project changed during restore - bail out early
           if (restoringProjectPathRef.current !== currentPath) {
-            console.log('[Terminal] Restore cancelled mid-loop - project changed');
+            logger.info('Restore cancelled mid-loop - project changed');
             return;
           }
 
@@ -729,7 +733,7 @@ export function TerminalView() {
           });
         }
       } catch (err) {
-        console.error('[Terminal] Failed to restore terminal layout:', err);
+        logger.error('Failed to restore terminal layout:', err);
         toast.error('Failed to restore terminals', {
           description: 'Could not restore terminal layout. Please try creating new terminals.',
           duration: 5000,
@@ -805,7 +809,7 @@ export function TerminalView() {
       }
     } catch (err) {
       setAuthError('Failed to authenticate');
-      console.error('[Terminal] Auth error:', err);
+      logger.error('Auth error:', err);
     } finally {
       setAuthLoading(false);
     }
@@ -850,14 +854,14 @@ export function TerminalView() {
               `Please close unused terminals. Limit: ${data.maxSessions || 'unknown'}`,
           });
         } else {
-          console.error('[Terminal] Failed to create session:', data.error);
+          logger.error('Failed to create session:', data.error);
           toast.error('Failed to create terminal', {
             description: data.error || 'Unknown error',
           });
         }
       }
     } catch (err) {
-      console.error('[Terminal] Create session error:', err);
+      logger.error('Create session error:', err);
       toast.error('Failed to create terminal', {
         description: 'Could not connect to server',
       });
@@ -914,7 +918,7 @@ export function TerminalView() {
         }
       }
     } catch (err) {
-      console.error('[Terminal] Create session error:', err);
+      logger.error('Create session error:', err);
       // Remove the empty tab on error
       const { removeTerminalTab } = useAppStore.getState();
       removeTerminalTab(tabId);
@@ -942,16 +946,13 @@ export function TerminalView() {
       if (!response.ok && response.status !== 404) {
         // Log non-404 errors but still proceed with UI cleanup
         const data = await response.json().catch(() => ({}));
-        console.error(
-          '[Terminal] Server failed to kill session:',
-          data.error || response.statusText
-        );
+        logger.error('Server failed to kill session:', data.error || response.statusText);
       }
 
       // Refresh session count
       fetchServerSettings();
     } catch (err) {
-      console.error('[Terminal] Kill session error:', err);
+      logger.error('Kill session error:', err);
       // Still remove from UI on network error - better UX than leaving broken terminal
       removeTerminalFromLayout(sessionId);
     }
@@ -982,7 +983,7 @@ export function TerminalView() {
         try {
           await apiDeleteRaw(`/api/terminal/sessions/${sessionId}`, { headers });
         } catch (err) {
-          console.error(`[Terminal] Failed to kill session ${sessionId}:`, err);
+          logger.error(`Failed to kill session ${sessionId}:`, err);
         }
       })
     );
@@ -1209,9 +1210,7 @@ export function TerminalView() {
             onSessionInvalid={() => {
               // Auto-remove stale session when server says it doesn't exist
               // This handles cases like server restart where sessions are lost
-              console.log(
-                `[Terminal] Session ${content.sessionId} is invalid, removing from layout`
-              );
+              logger.info(`Session ${content.sessionId} is invalid, removing from layout`);
               killTerminal(content.sessionId);
             }}
             isDragging={activeDragId === content.sessionId}
@@ -1586,9 +1585,7 @@ export function TerminalView() {
                 onNewTab={createTerminalInNewTab}
                 onSessionInvalid={() => {
                   const sessionId = terminalState.maximizedSessionId!;
-                  console.log(
-                    `[Terminal] Maximized session ${sessionId} is invalid, removing from layout`
-                  );
+                  logger.info(`Maximized session ${sessionId} is invalid, removing from layout`);
                   killTerminal(sessionId);
                 }}
                 isDragging={false}

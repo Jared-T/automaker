@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apps/ui/public/readme_logo.png" alt="Automaker Logo" height="80" />
+  <img src="apps/ui/public/readme_logo.svg" alt="Automaker Logo" height="80" />
 </p>
 
 > **[!TIP]**
@@ -81,22 +81,6 @@ Automaker leverages the [Claude Agent SDK](https://www.npmjs.com/package/@anthro
 
 The future of software development is **agentic coding**—where developers become architects directing AI agents rather than manual coders. Automaker puts this future in your hands today, letting you experience what it's like to build software 10x faster with AI agents handling the implementation while you focus on architecture and business logic.
 
----
-
-> **[!CAUTION]**
->
-> ## Security Disclaimer
->
-> **This software uses AI-powered tooling that has access to your operating system and can read, modify, and delete files. Use at your own risk.**
->
-> We have reviewed this codebase for security vulnerabilities, but you assume all risk when running this software. You should review the code yourself before running it.
->
-> **We do not recommend running Automaker directly on your local computer** due to the risk of AI agents having access to your entire file system. Please sandbox this application using Docker or a virtual machine.
->
-> **[Read the full disclaimer](./DISCLAIMER.md)**
-
----
-
 ## Community & Support
 
 Join the **Agentic Jumpstart** to connect with other builders exploring **agentic coding** and autonomous development workflows.
@@ -133,32 +117,32 @@ cd automaker
 # 2. Install dependencies
 npm install
 
-# 3. Build shared packages (Now can be skipped npm install / run dev does it automaticly)
+# 3. Build shared packages (can be skipped - npm run dev does it automatically)
 npm run build:packages
 
-# 4. Set up authentication (skip if using Claude Code CLI)
-# If using Claude Code CLI: credentials are detected automatically
-# If using API key directly, choose one method:
-
-# Option A: Environment variable
-export ANTHROPIC_API_KEY="sk-ant-..."
-
-# Option B: Create .env file in project root
-echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
-
-# 5. Start Automaker (interactive launcher)
+# 4. Start Automaker
 npm run dev
 # Choose between:
 #   1. Web Application (browser at localhost:3007)
 #   2. Desktop Application (Electron - recommended)
 ```
 
-**Note:** The `npm run dev` command will:
+**Authentication Setup:** On first run, Automaker will automatically show a setup wizard where you can configure authentication. You can choose to:
 
-- Check for dependencies and install if needed
-- Install Playwright browsers for E2E tests
-- Kill any processes on ports 3007/3008
-- Present an interactive menu to choose your run mode
+- Use **Claude Code CLI** (recommended) - Automaker will detect your CLI credentials automatically
+- Enter an **API key** directly in the wizard
+
+If you prefer to set up authentication before running (e.g., for headless deployments or CI/CD), you can set it manually:
+
+```bash
+# Option A: Environment variable
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Option B: Create .env file in project root
+echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
+```
+
+**For Development:** `npm run dev` starts the development server with Vite live reload and hot module replacement for fast refresh and instant updates as you make changes.
 
 ## How to Run
 
@@ -202,9 +186,6 @@ npm run dev:web
 ```bash
 # Build for web deployment (uses Vite)
 npm run build
-
-# Run production build
-npm run start
 ```
 
 #### Desktop Application
@@ -623,6 +604,22 @@ data/
 └── agent-sessions/        # Conversation histories
     └── {sessionId}.json
 ```
+
+---
+
+> **[!CAUTION]**
+>
+> ## Security Disclaimer
+>
+> **This software uses AI-powered tooling that has access to your operating system and can read, modify, and delete files. Use at your own risk.**
+>
+> We have reviewed this codebase for security vulnerabilities, but you assume all risk when running this software. You should review the code yourself before running it.
+>
+> **We do not recommend running Automaker directly on your local computer** due to the risk of AI agents having access to your entire file system. Please sandbox this application using Docker or a virtual machine.
+>
+> **[Read the full disclaimer](./DISCLAIMER.md)**
+
+---
 
 ## Learn More
 

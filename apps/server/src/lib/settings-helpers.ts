@@ -74,7 +74,7 @@ export async function getEnableSandboxModeSetting(
 
   try {
     const globalSettings = await settingsService.getGlobalSettings();
-    const result = globalSettings.enableSandboxMode ?? true;
+    const result = globalSettings.enableSandboxMode ?? false;
     logger.info(`${logPrefix} enableSandboxMode from global settings: ${result}`);
     return result;
   } catch (error) {
@@ -188,41 +188,6 @@ export async function getMCPServersFromSettings(
   } catch (error) {
     logger.error(`${logPrefix} Failed to load MCP servers setting:`, error);
     return {};
-  }
-}
-
-/**
- * Get MCP permission settings from global settings.
- *
- * @param settingsService - Optional settings service instance
- * @param logPrefix - Prefix for log messages (e.g., '[AgentService]')
- * @returns Promise resolving to MCP permission settings
- */
-export async function getMCPPermissionSettings(
-  settingsService?: SettingsService | null,
-  logPrefix = '[SettingsHelper]'
-): Promise<{ mcpAutoApproveTools: boolean; mcpUnrestrictedTools: boolean }> {
-  // Default to true for autonomous workflow. Security is enforced when adding servers
-  // via the security warning dialog that explains the risks.
-  const defaults = { mcpAutoApproveTools: true, mcpUnrestrictedTools: true };
-
-  if (!settingsService) {
-    return defaults;
-  }
-
-  try {
-    const globalSettings = await settingsService.getGlobalSettings();
-    const result = {
-      mcpAutoApproveTools: globalSettings.mcpAutoApproveTools ?? true,
-      mcpUnrestrictedTools: globalSettings.mcpUnrestrictedTools ?? true,
-    };
-    logger.info(
-      `${logPrefix} MCP permission settings: autoApprove=${result.mcpAutoApproveTools}, unrestricted=${result.mcpUnrestrictedTools}`
-    );
-    return result;
-  } catch (error) {
-    logger.error(`${logPrefix} Failed to load MCP permission settings:`, error);
-    return defaults;
   }
 }
 

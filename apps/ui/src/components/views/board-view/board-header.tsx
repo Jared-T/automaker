@@ -24,6 +24,10 @@ interface BoardHeaderProps {
   isMounted: boolean;
 }
 
+// Shared styles for header control containers
+const controlContainerClass =
+  'flex items-center gap-1.5 px-3 h-8 rounded-md bg-secondary border border-border';
+
 export function BoardHeader({
   projectName,
   maxConcurrency,
@@ -64,10 +68,7 @@ export function BoardHeader({
 
         {/* Concurrency Slider - only show after mount to prevent hydration issues */}
         {isMounted && (
-          <div
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary border border-border"
-            data-testid="concurrency-slider-container"
-          >
+          <div className={controlContainerClass} data-testid="concurrency-slider-container">
             <Bot className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm font-medium">Agents</span>
             <Slider
@@ -90,7 +91,7 @@ export function BoardHeader({
 
         {/* Auto Mode Toggle - only show after mount to prevent hydration issues */}
         {isMounted && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary border border-border">
+          <div className={controlContainerClass} data-testid="auto-mode-toggle-container">
             <Label htmlFor="auto-mode-toggle" className="text-sm font-medium cursor-pointer">
               Auto Mode
             </Label>

@@ -13,6 +13,18 @@ import type {
   AgentModel,
   GitHubComment,
   IssueCommentsResult,
+  Idea,
+  IdeaCategory,
+  IdeationSession,
+  IdeationMessage,
+  IdeationPrompt,
+  PromptCategory,
+  ProjectAnalysisResult,
+  AnalysisSuggestion,
+  StartSessionOptions,
+  CreateIdeaInput,
+  UpdateIdeaInput,
+  ConvertToFeatureOptions,
 } from '@automaker/types';
 import { getJSON, setJSON, removeItem } from './storage';
 
@@ -29,6 +41,104 @@ export type {
   GitHubComment,
   IssueCommentsResult,
 };
+
+// Re-export ideation types
+export type {
+  Idea,
+  IdeaCategory,
+  IdeationSession,
+  IdeationMessage,
+  IdeationPrompt,
+  PromptCategory,
+  ProjectAnalysisResult,
+  AnalysisSuggestion,
+  StartSessionOptions,
+  CreateIdeaInput,
+  UpdateIdeaInput,
+  ConvertToFeatureOptions,
+};
+
+// Ideation API interface
+export interface IdeationAPI {
+  // Session management
+  startSession: (
+    projectPath: string,
+    options?: StartSessionOptions
+  ) => Promise<{ success: boolean; session?: IdeationSession; error?: string }>;
+  getSession: (
+    projectPath: string,
+    sessionId: string
+  ) => Promise<{
+    success: boolean;
+    session?: IdeationSession;
+    messages?: IdeationMessage[];
+    error?: string;
+  }>;
+  sendMessage: (
+    sessionId: string,
+    message: string,
+    options?: { imagePaths?: string[]; model?: string }
+  ) => Promise<{ success: boolean; error?: string }>;
+  stopSession: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Ideas CRUD
+  listIdeas: (projectPath: string) => Promise<{ success: boolean; ideas?: Idea[]; error?: string }>;
+  createIdea: (
+    projectPath: string,
+    idea: CreateIdeaInput
+  ) => Promise<{ success: boolean; idea?: Idea; error?: string }>;
+  getIdea: (
+    projectPath: string,
+    ideaId: string
+  ) => Promise<{ success: boolean; idea?: Idea; error?: string }>;
+  updateIdea: (
+    projectPath: string,
+    ideaId: string,
+    updates: UpdateIdeaInput
+  ) => Promise<{ success: boolean; idea?: Idea; error?: string }>;
+  deleteIdea: (
+    projectPath: string,
+    ideaId: string
+  ) => Promise<{ success: boolean; error?: string }>;
+
+  // Project analysis
+  analyzeProject: (
+    projectPath: string
+  ) => Promise<{ success: boolean; analysis?: ProjectAnalysisResult; error?: string }>;
+
+  // Generate suggestions from a prompt
+  generateSuggestions: (
+    projectPath: string,
+    promptId: string,
+    category: IdeaCategory,
+    count?: number
+  ) => Promise<{ success: boolean; suggestions?: AnalysisSuggestion[]; error?: string }>;
+
+  // Convert to feature
+  convertToFeature: (
+    projectPath: string,
+    ideaId: string,
+    options?: ConvertToFeatureOptions
+  ) => Promise<{ success: boolean; feature?: any; featureId?: string; error?: string }>;
+
+  // Add suggestion directly to board as feature
+  addSuggestionToBoard: (
+    projectPath: string,
+    suggestion: AnalysisSuggestion
+  ) => Promise<{ success: boolean; featureId?: string; error?: string }>;
+
+  // Get guided prompts (single source of truth from backend)
+  getPrompts: () => Promise<{
+    success: boolean;
+    prompts?: IdeationPrompt[];
+    categories?: PromptCategory[];
+    error?: string;
+  }>;
+
+  // Event subscriptions
+  onStream: (callback: (event: any) => void) => () => void;
+  onAnalysisEvent: (callback: (event: any) => void) => () => void;
+}
 
 export interface FileEntry {
   name: string;
@@ -95,7 +205,7 @@ import type {
 } from '@/types/electron';
 
 // Import HTTP API client (ES module)
-import { getHttpApiClient } from './http-api-client';
+import { getHttpApiClient, getServerUrlSync } from './http-api-client';
 
 // Feature type - Import from app-store
 import type { Feature } from '@/store/app-store';
@@ -443,6 +553,7 @@ export interface SaveImageResult {
 export interface ElectronAPI {
   ping: () => Promise<string>;
   getApiKey?: () => Promise<string | null>;
+  quit?: () => Promise<void>;
   openExternalLink: (url: string) => Promise<{ success: boolean; error?: string }>;
   openDirectory: () => Promise<DialogResult>;
   openFile: (options?: object) => Promise<DialogResult>;
@@ -657,6 +768,7 @@ export interface ElectronAPI {
       error?: string;
     }>;
   };
+  ideation?: IdeationAPI;
 }
 
 // Note: Window interface is declared in @/types/electron.d.ts
@@ -705,7 +817,7 @@ export const checkServerAvailable = async (): Promise<boolean> => {
 
   serverCheckPromise = (async () => {
     try {
-      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:3008';
+      const serverUrl = import.meta.env.VITE_SERVER_URL || getServerUrlSync();
       const response = await fetch(`${serverUrl}/api/health`, {
         method: 'GET',
         signal: AbortSignal.timeout(2000),

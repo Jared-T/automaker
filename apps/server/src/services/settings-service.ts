@@ -27,11 +27,14 @@ import type {
   TrashedProjectRef,
   BoardBackgroundSettings,
   WorktreeInfo,
+  PhaseModelConfig,
+  PhaseModelEntry,
 } from '../types/settings.js';
 import {
   DEFAULT_GLOBAL_SETTINGS,
   DEFAULT_CREDENTIALS,
   DEFAULT_PROJECT_SETTINGS,
+  DEFAULT_PHASE_MODELS,
   SETTINGS_VERSION,
   CREDENTIALS_VERSION,
   PROJECT_SETTINGS_VERSION,
@@ -124,21 +127,127 @@ export class SettingsService {
    * Missing fields are filled in from DEFAULT_GLOBAL_SETTINGS for forward/backward
    * compatibility during schema migrations.
    *
+   * Also applies version-based migrations for breaking changes.
+   *
    * @returns Promise resolving to complete GlobalSettings object
    */
   async getGlobalSettings(): Promise<GlobalSettings> {
     const settingsPath = getGlobalSettingsPath(this.dataDir);
     const settings = await readJsonFile<GlobalSettings>(settingsPath, DEFAULT_GLOBAL_SETTINGS);
 
+    // Migrate legacy enhancementModel/validationModel to phaseModels
+    const migratedPhaseModels = this.migratePhaseModels(settings);
+
     // Apply any missing defaults (for backwards compatibility)
-    return {
+    let result: GlobalSettings = {
       ...DEFAULT_GLOBAL_SETTINGS,
       ...settings,
       keyboardShortcuts: {
         ...DEFAULT_GLOBAL_SETTINGS.keyboardShortcuts,
         ...settings.keyboardShortcuts,
       },
+      phaseModels: migratedPhaseModels,
     };
+
+    // Version-based migrations
+    const storedVersion = settings.version || 1;
+    let needsSave = false;
+
+    // Migration v1 -> v2: Force enableSandboxMode to false for existing users
+    // Sandbox mode can cause issues on some systems, so we're disabling it by default
+    if (storedVersion < 2) {
+      logger.info('Migrating settings from v1 to v2: disabling sandbox mode');
+      result.enableSandboxMode = false;
+      needsSave = true;
+    }
+
+    // Migration v2 -> v3: Convert string phase models to PhaseModelEntry objects
+    // Note: migratePhaseModels() handles the actual conversion for both v1 and v2 formats
+    if (storedVersion < 3) {
+      logger.info(
+        `Migrating settings from v${storedVersion} to v3: converting phase models to PhaseModelEntry format`
+      );
+      needsSave = true;
+    }
+
+    // Update version if any migration occurred
+    if (needsSave) {
+      result.version = SETTINGS_VERSION;
+    }
+
+    // Save migrated settings if needed
+    if (needsSave) {
+      try {
+        await ensureDataDir(this.dataDir);
+        await atomicWriteJson(settingsPath, result);
+        logger.info('Settings migration complete');
+      } catch (error) {
+        logger.error('Failed to save migrated settings:', error);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Migrate legacy enhancementModel/validationModel fields to phaseModels structure
+   *
+   * Handles backwards compatibility for settings created before phaseModels existed.
+   * Also handles migration from string phase models (v2) to PhaseModelEntry objects (v3).
+   * Legacy fields take precedence over defaults but phaseModels takes precedence over legacy.
+   *
+   * @param settings - Raw settings from file
+   * @returns Complete PhaseModelConfig with all fields populated
+   */
+  private migratePhaseModels(settings: Partial<GlobalSettings>): PhaseModelConfig {
+    // Start with defaults
+    const result: PhaseModelConfig = { ...DEFAULT_PHASE_MODELS };
+
+    // If phaseModels exists, use it (with defaults for any missing fields)
+    if (settings.phaseModels) {
+      // Merge with defaults and convert any string values to PhaseModelEntry
+      const merged: PhaseModelConfig = { ...DEFAULT_PHASE_MODELS };
+      for (const key of Object.keys(settings.phaseModels) as Array<keyof PhaseModelConfig>) {
+        const value = settings.phaseModels[key];
+        if (value !== undefined) {
+          // Convert string to PhaseModelEntry if needed (v2 -> v3 migration)
+          merged[key] = this.toPhaseModelEntry(value);
+        }
+      }
+      return merged;
+    }
+
+    // Migrate legacy fields if phaseModels doesn't exist
+    // These were the only two legacy fields that existed
+    if (settings.enhancementModel) {
+      result.enhancementModel = this.toPhaseModelEntry(settings.enhancementModel);
+      logger.debug(`Migrated legacy enhancementModel: ${settings.enhancementModel}`);
+    }
+    if (settings.validationModel) {
+      result.validationModel = this.toPhaseModelEntry(settings.validationModel);
+      logger.debug(`Migrated legacy validationModel: ${settings.validationModel}`);
+    }
+
+    return result;
+  }
+
+  /**
+   * Convert a phase model value to PhaseModelEntry format
+   *
+   * Handles migration from string format (v2) to object format (v3).
+   * - String values like 'sonnet' become { model: 'sonnet' }
+   * - Object values are returned as-is (with type assertion)
+   *
+   * @param value - Phase model value (string or PhaseModelEntry)
+   * @returns PhaseModelEntry object
+   */
+  private toPhaseModelEntry(value: string | PhaseModelEntry): PhaseModelEntry {
+    if (typeof value === 'string') {
+      // v2 format: just a model string
+      return { model: value as PhaseModelEntry['model'] };
+    }
+    // v3 format: already a PhaseModelEntry object
+    return value;
   }
 
   /**
@@ -166,6 +275,14 @@ export class SettingsService {
       updated.keyboardShortcuts = {
         ...current.keyboardShortcuts,
         ...updates.keyboardShortcuts,
+      };
+    }
+
+    // Deep merge phaseModels if provided
+    if (updates.phaseModels) {
+      updated.phaseModels = {
+        ...current.phaseModels,
+        ...updates.phaseModels,
       };
     }
 

@@ -1,8 +1,9 @@
 /**
  * POST /context/describe-image endpoint - Generate description for an image
  *
- * Uses Claude Haiku to analyze an image and generate a concise description
- * suitable for context file metadata.
+ * Uses AI to analyze an image and generate a concise description
+ * suitable for context file metadata. Model is configurable via
+ * phaseModels.imageDescriptionModel in settings (defaults to Haiku).
  *
  * IMPORTANT:
  * The agent runner (chat/auto-mode) sends images as multi-part content blocks (base64 image blocks),
@@ -13,9 +14,11 @@
 import type { Request, Response } from 'express';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { createLogger, readImageAsBase64 } from '@automaker/utils';
-import { CLAUDE_MODEL_MAP } from '@automaker/types';
+import { DEFAULT_PHASE_MODELS, isCursorModel } from '@automaker/types';
+import { resolvePhaseModel } from '@automaker/model-resolver';
 import { createCustomOptions } from '../../../lib/sdk-options.js';
-import * as fs from 'fs';
+import { ProviderFactory } from '../../../providers/provider-factory.js';
+import * as secureFs from '../../../lib/secure-fs.js';
 import * as path from 'path';
 import type { SettingsService } from '../../../services/settings-service.js';
 import { getAutoLoadClaudeMdSetting } from '../../../lib/settings-helpers.js';
@@ -57,13 +60,13 @@ function filterSafeHeaders(headers: Record<string, unknown>): Record<string, unk
  */
 function findActualFilePath(requestedPath: string): string | null {
   // First, try the exact path
-  if (fs.existsSync(requestedPath)) {
+  if (secureFs.existsSync(requestedPath)) {
     return requestedPath;
   }
 
   // Try with Unicode normalization
   const normalizedPath = requestedPath.normalize('NFC');
-  if (fs.existsSync(normalizedPath)) {
+  if (secureFs.existsSync(normalizedPath)) {
     return normalizedPath;
   }
 
@@ -72,12 +75,12 @@ function findActualFilePath(requestedPath: string): string | null {
   const dir = path.dirname(requestedPath);
   const baseName = path.basename(requestedPath);
 
-  if (!fs.existsSync(dir)) {
+  if (!secureFs.existsSync(dir)) {
     return null;
   }
 
   try {
-    const files = fs.readdirSync(dir);
+    const files = secureFs.readdirSync(dir);
 
     // Normalize the requested basename for comparison
     // Replace various space-like characters with regular space for comparison
@@ -281,9 +284,9 @@ export function createDescribeImageHandler(
       }
 
       // Log path + stats (this is often where issues start: missing file, perms, size)
-      let stat: fs.Stats | null = null;
+      let stat: ReturnType<typeof secureFs.statSync> | null = null;
       try {
-        stat = fs.statSync(actualPath);
+        stat = secureFs.statSync(actualPath);
         logger.info(
           `[${requestId}] fileStats size=${stat.size} bytes mtime=${stat.mtime.toISOString()}`
         );
@@ -337,40 +340,89 @@ export function createDescribeImageHandler(
         '[DescribeImage]'
       );
 
-      // Use the same centralized option builder used across the server (validates cwd)
-      const sdkOptions = createCustomOptions({
-        cwd,
-        model: CLAUDE_MODEL_MAP.haiku,
-        maxTurns: 1,
-        allowedTools: [],
-        autoLoadClaudeMd,
-        sandbox: { enabled: true, autoAllowBashIfSandboxed: true },
-      });
+      // Get model from phase settings
+      const settings = await settingsService?.getGlobalSettings();
+      const phaseModelEntry =
+        settings?.phaseModels?.imageDescriptionModel || DEFAULT_PHASE_MODELS.imageDescriptionModel;
+      const { model, thinkingLevel } = resolvePhaseModel(phaseModelEntry);
 
-      logger.info(
-        `[${requestId}] SDK options model=${sdkOptions.model} maxTurns=${sdkOptions.maxTurns} allowedTools=${JSON.stringify(
-          sdkOptions.allowedTools
-        )} sandbox=${JSON.stringify(sdkOptions.sandbox)}`
-      );
+      logger.info(`[${requestId}] Using model: ${model}`);
 
-      const promptGenerator = (async function* () {
-        yield {
-          type: 'user' as const,
-          session_id: '',
-          message: { role: 'user' as const, content: promptContent },
-          parent_tool_use_id: null,
-        };
-      })();
+      let description: string;
 
-      logger.info(`[${requestId}] Calling query()...`);
-      const queryStart = Date.now();
-      const stream = query({ prompt: promptGenerator, options: sdkOptions });
-      logger.info(`[${requestId}] query() returned stream in ${Date.now() - queryStart}ms`);
+      // Route to appropriate provider based on model type
+      if (isCursorModel(model)) {
+        // Use Cursor provider for Cursor models
+        // Note: Cursor may have limited support for image content blocks
+        logger.info(`[${requestId}] Using Cursor provider for model: ${model}`);
 
-      // Extract the description from the response
-      const extractStart = Date.now();
-      const description = await extractTextFromStream(stream, requestId);
-      logger.info(`[${requestId}] extractMs=${Date.now() - extractStart}`);
+        const provider = ProviderFactory.getProviderForModel(model);
+
+        // Build prompt with image reference for Cursor
+        // Note: Cursor CLI may not support base64 image blocks directly,
+        // so we include the image path as context
+        const cursorPrompt = `${instructionText}\n\nImage file: ${actualPath}\nMIME type: ${imageData.mimeType}`;
+
+        let responseText = '';
+        const queryStart = Date.now();
+        for await (const msg of provider.executeQuery({
+          prompt: cursorPrompt,
+          model,
+          cwd,
+          maxTurns: 1,
+          allowedTools: ['Read'], // Allow Read tool so Cursor can read the image if needed
+          readOnly: true, // Image description only reads, doesn't write
+        })) {
+          if (msg.type === 'assistant' && msg.message?.content) {
+            for (const block of msg.message.content) {
+              if (block.type === 'text' && block.text) {
+                responseText += block.text;
+              }
+            }
+          }
+        }
+        logger.info(`[${requestId}] Cursor query completed in ${Date.now() - queryStart}ms`);
+        description = responseText;
+      } else {
+        // Use Claude SDK for Claude models (supports image content blocks)
+        logger.info(`[${requestId}] Using Claude SDK for model: ${model}`);
+
+        // Use the same centralized option builder used across the server (validates cwd)
+        const sdkOptions = createCustomOptions({
+          cwd,
+          model,
+          maxTurns: 1,
+          allowedTools: [],
+          autoLoadClaudeMd,
+          sandbox: { enabled: true, autoAllowBashIfSandboxed: true },
+          thinkingLevel, // Pass thinking level for extended thinking
+        });
+
+        logger.info(
+          `[${requestId}] SDK options model=${sdkOptions.model} maxTurns=${sdkOptions.maxTurns} allowedTools=${JSON.stringify(
+            sdkOptions.allowedTools
+          )} sandbox=${JSON.stringify(sdkOptions.sandbox)}`
+        );
+
+        const promptGenerator = (async function* () {
+          yield {
+            type: 'user' as const,
+            session_id: '',
+            message: { role: 'user' as const, content: promptContent },
+            parent_tool_use_id: null,
+          };
+        })();
+
+        logger.info(`[${requestId}] Calling query()...`);
+        const queryStart = Date.now();
+        const stream = query({ prompt: promptGenerator, options: sdkOptions });
+        logger.info(`[${requestId}] query() returned stream in ${Date.now() - queryStart}ms`);
+
+        // Extract the description from the response
+        const extractStart = Date.now();
+        description = await extractTextFromStream(stream, requestId);
+        logger.info(`[${requestId}] extractMs=${Date.now() - extractStart}`);
+      }
 
       if (!description || description.trim().length === 0) {
         logger.warn(`[${requestId}] Received empty response from Claude`);

@@ -9,16 +9,10 @@
  * Use this instead of raw fetch() for all authenticated API calls.
  */
 
-import { getApiKey, getSessionToken } from './http-api-client';
+import { getApiKey, getSessionToken, getServerUrlSync } from './http-api-client';
 
-// Server URL - configurable via environment variable
-const getServerUrl = (): string => {
-  if (typeof window !== 'undefined') {
-    const envUrl = import.meta.env.VITE_SERVER_URL;
-    if (envUrl) return envUrl;
-  }
-  return 'http://localhost:3008';
-};
+// Server URL - uses shared cached URL from http-api-client
+const getServerUrl = (): string => getServerUrlSync();
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
@@ -158,4 +152,38 @@ export async function apiDeleteRaw(
   options: ApiFetchOptions = {}
 ): Promise<Response> {
   return apiFetch(endpoint, 'DELETE', options);
+}
+
+/**
+ * Build an authenticated image URL for use in <img> tags or CSS background-image
+ * Adds authentication via query parameter since headers can't be set for image loads
+ *
+ * @param path - Image path
+ * @param projectPath - Project path
+ * @param version - Optional cache-busting version
+ * @returns Full URL with auth credentials
+ */
+export function getAuthenticatedImageUrl(
+  path: string,
+  projectPath: string,
+  version?: string | number
+): string {
+  const serverUrl = getServerUrl();
+  const params = new URLSearchParams({
+    path,
+    projectPath,
+  });
+
+  if (version !== undefined) {
+    params.set('v', String(version));
+  }
+
+  // Add auth credential as query param (needed for image loads that can't set headers)
+  const apiKey = getApiKey();
+  if (apiKey) {
+    params.set('apiKey', apiKey);
+  }
+  // Note: Session token auth relies on cookies which are sent automatically by the browser
+
+  return `${serverUrl}/api/fs/image?${params.toString()}`;
 }
